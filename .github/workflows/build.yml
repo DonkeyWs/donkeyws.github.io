@@ -21,16 +21,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Install Pandoc
         run: sudo apt-get update && sudo apt-get install -y pandoc
-
-      - name: Preprocess Obsidian Markdown
-        run: python scripts/preprocess.py
 
       - name: Build HTML
         run: |
