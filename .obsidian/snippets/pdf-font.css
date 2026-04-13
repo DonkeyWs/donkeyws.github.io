@@ -1,0 +1,10 @@
+@media print {
+  body {
+    --font-interface-override: "霞鹜文楷" !important;
+    --font-text-override: "霞鹜文楷" !important;
+    --font-print-override: "霞鹜文楷" !important;
+    --font-monospace-override: "霞鹜文楷等宽" !important;
+    --font-text-size: 22px !important;
+    font-family: "思源宋体" !important;
+  }
+}
