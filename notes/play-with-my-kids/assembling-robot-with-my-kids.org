@@ -2,7 +2,9 @@
 #+date: 2026/04/19
 #+author: "Donkey" <anjingyu_ws@foxmail.com>, "Laura Anan" <lauraanan@outlook.com>
 
-I came across the [[https://github.com/dorianborian/sesame-robot][Sesame Robot]], a *quadruped robot* project, while watching a video.
+* Assembling Robot with My Kids
+
+I came across the [[https://github.com/dorianborian/sesame-robot][Sesame Robot]][fn:1], a *quadruped robot* project, while watching a video.
 It is so cute and so easy to DIY, so without a second thought, I decided to embark on this build with my kids.
 
 According to the official tutorial[fn:2], there are 5 phases to build this robot.
