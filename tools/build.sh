@@ -4,7 +4,7 @@
 #
 # Author: donkey <anjingyu_ws@foxmail.com>
 
-readonly __VERSION__="0.1.8"
+readonly __VERSION__="0.1.9"
 
 # Stop script on NZEC
 # set -e
@@ -202,10 +202,10 @@ function build_one_file()
     fi
 
     # Replace all the *.md or *.org to *.html
-    local _URLS=$(sed -n 's/href="\([^(http)]\(.*\).\(md\|org\)\)"/\1/p' $_OUTPUT_FILE)
+    local _URLS=$(sed -n 's/.*href="\([^"]*.*.\(md\|org\)\)".*/\1/p' $_OUTPUT_FILE | grep -v '^https\?://')
     if [ -n "$_URLS" ]; then
         echo "$_URLS" | while read -r _LINE; do
-            local _U=$(sed -n 's/.*<a\s\+\(\(.*\).\(md\|org\)\).*/\1/p' <<< "$_LINE")
+            local _U="$_LINE"
             # Use relative path in the link URL
             local _P="${_U%.*}.html"
             if [[ $(basename $_U) == 'README'* ]]; then
