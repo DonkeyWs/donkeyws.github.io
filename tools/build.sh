@@ -149,7 +149,7 @@ function build_one_file()
         mkdir -p "$_OUTPUT_DIR"
     fi
 
-    local declare _OPTS=("--standalone" "--embed-resources" "--css=$_THEME_DIR/styling.css" "--resource-path=.:${CUR_DIR}" "--mathjax=${CUR_DIR}/mathjax/tex-mml-chtml.min.js" "--to=html5")
+    local declare _OPTS=("--css=/static/$(basename $_THEME_DIR)/styling.css" "--resource-path=.:${CUR_DIR}" "--mathjax=${CUR_DIR}/mathjax/tex-mml-chtml.min.js" "--to=html5")
 
     if [ -f "$_THEME_DIR/template.html" ]; then
         _OPTS+=("--template=$_THEME_DIR/template.html")
@@ -376,6 +376,12 @@ function main()
     if [ -d "$MATHJAX_FONT_DIR" ]; then
         info "Copying the fonts required by ${green}MathJax${normal} ..."
         cp -rf "$MATHJAX_FONT_DIR" "$_OUTPUT_DIR"
+    fi
+
+    if [ ! -d "$_OUTPUT_DIR/static/$_THEME" ]; then
+        info "Copying the style sheet required by ${green}github theme${normal} ..."
+        mkdir -p "$_OUTPUT_DIR/static/$_THEME"
+        cp -rf "$CUR_DIR/themes/$_THEME/styling.css" "$_OUTPUT_DIR/static/$_THEME"
     fi
 
     # Do publish if specify this argument

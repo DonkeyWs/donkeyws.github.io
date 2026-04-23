@@ -663,3 +663,91 @@ body :checked+.radio-label {
   border-color: #4078c0;
 }
 
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+
+/* GFM Admonations */
+.note {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    color: inherit;
+    border-left: .25em solid #0969da;
+    background-color: rgba(9, 105, 218, 0.08);
+}
+
+.note .title {
+    display: flex;
+    color: #0969da;
+    font-weight: 500;
+    align-items: center;
+    line-height: 1;
+}
+
+.tip {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    color: inherit;
+    border-left: .25em solid #1a7f37;
+    background-color: rgba(26, 127, 55, 0.08);
+}
+
+.tip .title {
+    display: flex;
+    color: #1a7f37;
+    font-weight: 500;
+    align-items: center;
+    line-height: 1;
+}
+
+.important {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    color: inherit;
+    border-left: .25em solid #8250df;
+    background-color: rgba(130, 80, 223, 0.08);
+}
+
+.important .title {
+    display: flex;
+    color: #8250df;
+    font-weight: 500;
+    align-items: center;
+    line-height: 1;
+}
+
+.warning {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    color: inherit;
+    border-left: .25em solid #bf8700;
+    background-color: rgba(191, 135, 0, 0.08);
+}
+
+.warning .title {
+    display: flex;
+    color: #bf8700;
+    font-weight: 500;
+    align-items: center;
+    line-height: 1;
+}
+
+.caution {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    color: inherit;
+    border-left: .25em solid #cf222e;
+    background-color: rgba(207, 34, 46, 0.08);
+}
+
+.caution .title {
+    display: flex;
+    color: #cf222e;
+    font-weight: 500;
+    align-items: center;
+    line-height: 1;
+}
+
