@@ -4,7 +4,7 @@
 #
 # Author: donkey <anjingyu_ws@foxmail.com>
 
-readonly __VERSION__="0.1.9"
+readonly __VERSION__="0.2.0"
 
 # Stop script on NZEC
 # set -e
@@ -153,6 +153,18 @@ function build_one_file()
 
     if [ -f "$_THEME_DIR/template.html" ]; then
         _OPTS+=("--template=$_THEME_DIR/template.html")
+    fi
+
+    if [ -f "$_THEME_DIR/header.html" ]; then
+        _OPTS+=("--include-in-header=$_THEME_DIR/header.html")
+    fi
+
+    if [ -f "$_THEME_DIR/navbar.html" ]; then
+        _OPTS+=("--include-before-body=$_THEME_DIR/navbar.html")
+    fi
+
+    if [ -f "$_THEME_DIR/footer.html" ]; then
+        _OPTS+=("--include-after-body=$_THEME_DIR/footer.html")
     fi
 
     pushd $_INPUT_DIR 1>/dev/null 2>&1
