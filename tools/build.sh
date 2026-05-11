@@ -196,6 +196,8 @@ function build_one_file()
             _OPTS+=("--metadata" "title=$_TITLE")
         fi
 
+        _OPTS+=("-V" "orgtitle:$_TITLE")
+
         pandoc "${_OPTS[@]}" -o $_OUTPUT_FILE $_INPUT_FILE 1>/dev/null 2>&1
 
         if [ $? -eq 0 ]; then
