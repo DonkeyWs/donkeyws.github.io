@@ -66,6 +66,7 @@ function command_exists()
 
 readonly CUR_DIR=$(cd $(dirname $0); pwd)
 readonly PROJ_DIR=`dirname $CUR_DIR`
+readonly OSTYPE=$(uname -s)
 readonly MATHJAX_PATH="$CUR_DIR/mathjax/tex-mml-chtml.min.js"
 readonly MATHJAX_FONT_DIR="$CUR_DIR/mathjax/output"
 
@@ -170,7 +171,9 @@ function build_one_file()
     pushd $_INPUT_DIR 1>/dev/null 2>&1
     if [[ "$_INPUT_FILE_BN" == *'.md' ]] || [[ "$_INPUT_FILE_BN" == *'.markdown' ]]; then
         # Extract the title from file content
-        local _TITLE=$(sed -n "0,/#\s*.*$/ s/#\s*\(.*\)$/\1/p" $_INPUT_FILE)
+        # Compatible with macOS/Linux
+        # local _TITLE=$(awk '/^# / { sub(/^# +/, ""); print; exit }' $_INPUT_FILE)
+        local _TITLE=$(sed -nE '/^#[[:space:]]*/ { s/^#[[:space:]]*(.*)$/\1/p; q; }' $_INPUT_FILE)
 
         if [ -n "$_TITLE" ]; then
             # Append title
@@ -189,7 +192,8 @@ function build_one_file()
         fi
     elif [[ "$_INPUT_FILE_BN" == *'.org' ]]; then
         # Extract the title from file content
-        local _TITLE=$(sed -n "0,/#+title:\s*.*$/ s/#+title:\s*\(.*\)$/\1/p" $_INPUT_FILE)
+        # Compatible with macOS/Linux
+        local _TITLE=$(sed -nE '/^#\+title:[[:space:]]*/ { s/^#\+title:[[:space:]]*(.*)$/\1/p; q; }' $_INPUT_FILE)
 
         if [ -n "$_TITLE" ]; then
             # Append title
@@ -216,7 +220,8 @@ function build_one_file()
     fi
 
     # Replace all the *.md or *.org to *.html
-    local _URLS=$(sed -n 's/.*href="\([^"]*.*.\(md\|org\)\)".*/\1/p' $_OUTPUT_FILE | grep -v '^https\?://')
+    # Compatible with macOS/Linux
+    local _URLS=$(sed -nE 's/.*href="([^"]+\.(md|org))".*/\1/p' "$_OUTPUT_FILE" | grep -Ev '^https?://')
     if [ -n "$_URLS" ]; then
         echo "$_URLS" | while read -r _LINE; do
             local _U="$_LINE"
@@ -225,7 +230,13 @@ function build_one_file()
             if [[ $(basename $_U) == 'README'* ]]; then
                 _P="$(dirname $_U)/index.html"
             fi
-            sed -i "s@href=\"$_U\"@href=\"$_P\"@g" "${_OUTPUT_FILE}"
+            if [[ "$OSTYPE" == "Darwin" ]]; then
+                sed -i '' "s@href=\"$_U\"@href=\"$_P\"@g" "${_OUTPUT_FILE}"
+            elif [[ "$OSTYPE" == "Linux" ]]; then
+                sed -i "s@href=\"$_U\"@href=\"$_P\"@g" "${_OUTPUT_FILE}"
+            else
+                error "Unsupport OS: ${red}$OSTYPE${normal}"
+            fi
         done
     fi
 
