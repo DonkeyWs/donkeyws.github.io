@@ -14,6 +14,7 @@ $if(keywords)$
   <meta name="keywords" content="$for(keywords)$$keywords$$sep$, $endfor$" />
 $endif$
   <title>$if(title-prefix)$$title-prefix$ – $endif$$pagetitle$</title>
+  <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.8/css/bootstrap.min.css" rel="stylesheet">
 $for(css)$
   <style type="text/css">
 $if(quotes)$
@@ -60,16 +61,17 @@ $for(include-after)$
 $include-after$
 $endfor$
 <hr />
-<script src="https://utteranc.es/client.js"
-  repo="DonkeyWs/donkeyws.github.io"
-  issue-term="pathname"
-  label="comment"
-  theme="github-light"
-  crossorigin="anonymous"
-  async>
-</script>
-<div style="color: #686868;text-align: center;min-height: 15px;border-top: 1px solid #ededed;margin-top: 50px;padding-top: 10px;margin-bottom: 10px;">
+  <script src="https://utteranc.es/client.js"
+    repo="DonkeyWs/donkeyws.github.io"
+    issue-term="pathname"
+    label="comment"
+    theme="github-light"
+    crossorigin="anonymous"
+    async>
+  </script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.8/js/bootstrap.bundle.min.js"></script>
+  <div style="color: #686868;text-align: center;min-height: 15px;border-top: 1px solid #ededed;margin-top: 50px;padding-top: 10px;margin-bottom: 10px;">
     <div>© 2025- Matt An</div>
-</div>
+  </div>
 </body>
 </html>
