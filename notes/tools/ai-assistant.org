@@ -1,0 +1,169 @@
+#+title: AI 辅助工具
+#+date: 2026/05/14
+#+author: "Donkey" <anjingyu_ws@foxmail.com>
+
+** 自建服务
+
+- [[https://github.com/ollama/ollama][Ollama]], 虽然开源社区鄙视 =Ollama= , 但不得不说这是搭建个人demo最简单的方案
+- [[https://github.com/open-webui/open-webui][OpenWebUI]], 开源免费的大模型交互Web服务，可以配合 =SearXNG=
+- [[https://github.com/searxng/searxng][SearXNG]], 开源免费的自建搜索引擎，可用于大模型
+
+*** Ollama
+
+#+begin_src bash
+#!/usr/bin/env bash
+#
+# Upgrade ollama to specific version
+
+set -x
+set -eu
+
+readonly CUR_DIR=$(cd $(dirname $0); pwd)
+
+function version_cmp()
+{
+    if [ $# -lt 2 ]; then
+        echo "[E] Need at least two argument, <first version string>, <second version string>."
+        return
+    fi
+
+    local _V1="$1"
+    local _V2="$2"
+
+    if [ "$_V1"="$_V2" ]; then
+        echo 0
+    else
+        if [[ $(echo -e "$_V1\n$_V2" | sort -V | head -n1) == "$_V1" ]]; then
+            echo -1
+        else
+            echo 1
+        fi
+    fi
+}
+
+function main()
+{
+    local _VER=""
+
+    if [ $# -gt 0 ]; then
+        _VER="$1"
+    else
+        local _HOST="https://github.com/ollama/ollama"
+        _VER=$(git ls-remote --refs -t --sort=-v:refname $_HOST | grep "/v[0-9]\+\.[0-9]\+\.[0-9]\+$" | head -n 1 | cut -d ' ' -f 2 | cut -d '/' -f 3)
+
+        if command -v ollama; then
+            local _CUR_VER=$(ollama --version | rev | cut -d ' ' -f 1 | rev)
+            _CUR_VER="v${_CUR_VER}"
+            local _CMP_V=$(version_cmp $_CUR_VER $_VER)
+
+            if [ $_CMP_V -lt 0 ]; then
+                echo "Prepare to update to version: $_VER"
+            fi
+        fi
+    fi
+
+    pushd $CUR_DIR
+    while true; do
+        if wget -c https://github.com/ollama/ollama/releases/download/$_VER/ollama-linux-amd64.tar.zst; then
+            break
+        fi
+    done
+
+    # Download is completed, attempt tp replace and install
+    sudo systemctl stop ollama.service
+
+    sudo rm /usr/local/bin/ollama
+    sudo rm /usr/local/lib/ollama -rf
+
+    # Decompress the package
+    zstd -d "./ollama-linux-amd64.tar.zst"
+    tar -xf ollama-linux-amd64.tar
+
+    sudo mv bin/ollama /usr/local/bin/
+    sudo mv lib/ollama /usr/local/lib/
+
+    sudo systemctl start ollama.service
+
+    rm bin lib -rf
+    rm ollama-linux-amd64.tar
+    rm ollama-linux-amd64.tar.zst
+    popd
+}
+
+main "$@"
+
+set +x
+#+end_src
+
+*** SearXNG
+
+#+begin_src bash
+#!/usr/bin/env bash
+
+readonly CUR_DIR=$(cd `dirname $0`; pwd)
+
+docker run -d \
+  --name searxng \
+  --restart=always \
+  -v ${CUR_DIR}/settings.yml:/etc/searxng/settings.yml \
+  -p 18888:8080 \
+  -e "BASE_URL=http://192.168.1.101:18888/" \
+  searxng/searxng:latest
+#+end_src
+
+#+begin_src bash
+docker cp searxng:/etc/searxng/settings.yml settings.yml
+#+end_src
+
+#+begin_src yaml
+search:
+  format:
+    - json # append this line
+#+end_src
+
+*** OpenWebUI
+
+#+begin_src bash
+#!/usr/bin/env bash
+
+readonly CUR_DIR=$(cd `dirname $0`; pwd)
+readonly DATA_DIR="${CUR_DIR}/open-webui"
+
+if [ ! -d "${DATA_DIR}" ]; then
+    mkdir -p "${DATA_DIR}"
+fi
+
+docker run -d -p 3029:8080 --add-host=host.docker.internal:host-gateway -e OLLAMA_BASE_URL="http://192.168.1.101:11434" -v ${DATA_DIR}:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+#+end_src
+
+管理员配置，开启搜索引擎开关，并配置搜索URL为：
+
+#+begin_example
+  http://192.168.1.101:18888/search?q=<query>/
+#+end_example
+
+配置好之后，就可以在聊天页面发送问题的时候集成网络搜索功能了。
+
+** AI 编程助手插件
+
+- [[https://github.com/rtk-ai/rtk][rtk]], 帮你节省Token
+- [[https://github.com/tirth8025/code-review-graph][code-review-graph]], 理解和修改代码库的时候节省Token
+- [[https://github.com/safishamsi/graphify][graphify skill]], 理解代码，节省Token
+
+*** code-review-graph
+
+#+begin_src shell
+  # Install
+  pip install code-review-graph
+  # Initialize for your project, in project directory
+  code-review-graph install
+  # Generate db
+  code-review-graph build
+#+end_src
+
+*** graphify skill
+#+begin_src shell
+  pip install graphifyy
+  # Install skills for your assistants
+  graphify install
+#+end_src
