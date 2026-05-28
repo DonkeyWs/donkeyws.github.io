@@ -148,7 +148,8 @@ docker run -d -p 3029:8080 --add-host=host.docker.internal:host-gateway -e OLLAM
 
 - [[https://github.com/rtk-ai/rtk][rtk]], 帮你节省Token
 - [[https://github.com/tirth8025/code-review-graph][code-review-graph]], 理解和修改代码库的时候节省Token
-- [[https://github.com/safishamsi/graphify][graphify skill]], 理解代码，节省Token
+- [[https://github.com/safishamsi/graphify][graphify]], 理解代码，节省Token
+- [[https://github.com/colbymchenry/codegraph][codegraphy]], 理解代码，节省Token
 
 *** code-review-graph
 
@@ -162,8 +163,19 @@ docker run -d -p 3029:8080 --add-host=host.docker.internal:host-gateway -e OLLAM
 #+end_src
 
 *** graphify skill
+
 #+begin_src shell
   pip install graphifyy
   # Install skills for your assistants
   graphify install
+#+end_src
+
+*** codegraphy
+
+#+begin_src shell
+  # Install globally
+  npm i -g @colbymchenry/codegraph
+
+  # Analysis your project
+  codegraph init -i
 #+end_src
