@@ -412,7 +412,7 @@ function main()
     fi
 
     if [ ! -d "$_OUTPUT_DIR/static/$_THEME" ]; then
-        info "Copying the style sheet required by ${green}github theme${normal} ..."
+        info "Copying the style sheet required by ${green}$_THEME theme${normal} ..."
         mkdir -p "$_OUTPUT_DIR/static/$_THEME"
         cp -rf "$CUR_DIR/themes/$_THEME/styling.css" "$_OUTPUT_DIR/static/$_THEME"
     fi
