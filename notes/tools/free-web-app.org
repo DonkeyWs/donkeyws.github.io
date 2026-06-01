@@ -1,0 +1,43 @@
+#+title: 免费的 Web App 搭建方案
+#+date: 2026/06/01
+#+author: "Donkey" <anjingyu_ws@foxmail.com>
+
+** 楔子(Prologue)
+
+打算带着孩子做一点有意思的小应用，学习+娱乐，最简单，成本最低的就是从Web应用开始。
+
+** =GitHub Pages= + =Cloudflare Workers= + =Cloudflare D1=
+
+#+begin_note
+对于大部分开发者来说，应该已经听过甚至很熟悉 =GitHub= 和 =Cloudflare= ，但是这个建站方案的教程实际上是面向小孩子和普通人的，
+所以这里还是要多啰唆一下，提供详细一点的说明。
+#+end_note
+
+本章节提到的三个名词分别是什么？
+
+- [[https://pages.github.io][GitHub Pages]]：一个用于帮你存放网站前端代码，以及托管部署之后的前端页面的免费服务。
+- [[https://developers.cloudflare.com/workers/][Cloudflare Workers]]： =Cloudflare= 提供的无服务计算平台，可以用来架设你应用的后端服务接口，对于免费用户，每天有 =10000= 次调用限额。
+- [[https://developers.cloudflare.com/d1/][Cloudflare D1]]： =Cloudflare= 提供的无服务 =SQL= 数据库平台，用于保存你应用的后台数据，对于免费用户，一共有 =5GB= 的储存空间限制，以及每个月 =5000000= 次的查询限制。
+
+*** 注册账户
+
+0. 首先你要有一个邮箱，推荐使用 ~outlook~ 邮箱，国内访问速度不错，也方便用于国际服务。
+1. 用你的邮箱注册 =GitHub= 账户
+2. 用你的邮箱注册 =Cloudflare= 账户
+
+安装必要的命令行工具，首先要确保你有 =NodeJS= 环境，之后安装如下工具：
+
+#+begin_src bash
+  # Cloudflare official dev tool
+  npm i -g wrangler
+  # Log in your cloudflare account
+  npx wrangler login
+#+end_src
+
+** =PinMe 2.0=
+
+#+begin_note
+免费额度是 =$5= ，基本够建站和测试使用，总体来说没有方案一好用，方案一支持小型生产级的应用部署。
+#+end_note
+
+
