@@ -15,17 +15,17 @@ exec 3>&1
 
 # Assume the terminal is a MODERN terminal
 # support colorful output
-normal="\e[0m"
-black="\e[0;30m"
-red="\e[0;31m"
-green="\e[0;32m"
-yellow="\e[0;33m"
-blue="\e[0;34m"
-magenta="\e[0;35m"
-cyan="\e[0;36m"
-white="\e[0;37m"
+readonly normal="\e[0m"
+readonly black="\e[0;30m"
+readonly red="\e[0;31m"
+readonly green="\e[0;32m"
+readonly yellow="\e[0;33m"
+readonly blue="\e[0;34m"
+readonly magenta="\e[0;35m"
+readonly cyan="\e[0;36m"
+readonly white="\e[0;37m"
 
-RUNNING="true"
+DEBUG="false"
 
 function error()
 {
@@ -50,7 +50,6 @@ function debug()
 function errtrap()
 {
     error "[EXCEPTION:$1] Error: Command or function exited with status $?"
-    RUNNING="false"
 }
 
 # Catch the exception
@@ -183,6 +182,9 @@ function build_one_file()
         # Always use gfm
         _OPTS+=("--from=gfm")
 
+        if [[ "$DEBUG" == "true" ]]; then
+            echo "pandoc ${_OPTS[@]} -o $_OUTPUT_FILE $_INPUT_FILE 1>/dev/null 2>&1"
+        fi
         pandoc "${_OPTS[@]}" -o $_OUTPUT_FILE $_INPUT_FILE 1>/dev/null 2>&1
 
         if [ $? -eq 0 ]; then
@@ -202,6 +204,9 @@ function build_one_file()
 
         _OPTS+=("-V" "orgtitle:$_TITLE")
 
+        if [[ "$DEBUG" == "true" ]]; then
+            echo "pandoc ${_OPTS[@]} -o $_OUTPUT_FILE $_INPUT_FILE 1>/dev/null 2>&1"
+        fi
         pandoc "${_OPTS[@]}" -o $_OUTPUT_FILE $_INPUT_FILE 1>/dev/null 2>&1
 
         if [ $? -eq 0 ]; then
@@ -355,6 +360,9 @@ function main()
             -i|--input)
                 shift
                 _ARTICLES_DIR=`realpath "$1"`
+                ;;
+            -d|--debug)
+                DEBUG="true"
                 ;;
             -o|--output)
                 shift
