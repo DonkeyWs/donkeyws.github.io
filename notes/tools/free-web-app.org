@@ -9,8 +9,7 @@
 ** =GitHub Pages= + =Cloudflare Workers= + =Cloudflare D1=
 
 #+begin_note
-对于大部分开发者来说，应该已经听过甚至很熟悉 =GitHub= 和 =Cloudflare= ，但是这个建站方案的教程实际上是面向小孩子和普通人的，
-所以这里还是要多啰唆一下，提供详细一点的说明。
+对于大部分开发者来说，应该已经听过甚至很熟悉 =GitHub= 和 =Cloudflare= ，但是这个建站方案的教程实际上是面向小孩子和普通人的，所以这里还是要多啰唆一下，提供一点简单的说明。
 #+end_note
 
 本章节提到的三个名词分别是什么？
@@ -22,8 +21,8 @@
 *** 注册账户
 
 0. 首先你要有一个邮箱，推荐使用 ~outlook~ 邮箱，国内访问速度不错，也方便用于国际服务。
-1. 用你的邮箱注册 =GitHub= 账户
-2. 用你的邮箱注册 =Cloudflare= 账户
+1. 用你的邮箱注册 =GitHub= 账户。
+2. 用你的邮箱注册 =Cloudflare= 账户。
 
 安装必要的命令行工具，首先要确保你有 =NodeJS= 环境，之后安装如下工具：
 
@@ -33,6 +32,220 @@
   # Log in your cloudflare account
   npx wrangler login
 #+end_src
+
+接下来创建一个应用，这里以 =blog= 为例，这里创建应用就选择 =Hello World example= ，之后是 =SSR / full-stack app= ，语言选择 =Javascript= ，先不要部署：
+
+#+begin_src bash
+  # Create a blog app: laura-blog
+  npm create cloudflare@latest laura-blog
+#+end_src
+
+进入创建好的项目，之后创建一个关联的数据库：
+
+#+begin_src bash
+  cd laura-blog
+  # Create a database
+  wrangler d1 create blog-db
+#+end_src
+
+#+begin_important
+注意，后面没有特殊说明， *所有的* 的操作都在项目目录中。
+#+end_important
+
+创建成功后，会输出数据库的 =ID= ，这个要记录下来，填写到项目的 =wrangler.jsonc= 文件中(实际上过程中你可以选择让工具帮你填写到配置文件中)：
+
+#+begin_src json
+{
+  "d1_databases": [
+    {
+      "binding": "blog_db",
+      "database_name": "blog-db",
+      "database_id": "<Your ID>",
+      "remote": false
+    }
+  ]
+}
+#+end_src
+
+有了数据库之后，可以创建数据表了：
+
+#+begin_src bash
+  # NOTE: if you want to operate the db remotely, replace --local with --remote
+  # Here we create a local 
+  wrangler d1 execute blog-db --local --command="CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, content TEXT, created_at TEXT);"
+#+end_src
+
+创建后端服务 =src/index.js= ：
+
+#+begin_src javascript
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    if (url.pathname == "/api/note" && request.method == "POST") {
+      const { title, content } = await request.json();
+      // NOTE: Here you should note that what the name you bind in wrangler.jsonc("d1_databases.bingding")
+      // here I bind it as "blog_db"
+      await env.blog_db.prepare("INSERT INTO notes (title, content, created_at) VALUES (?, ?, ?)")
+          .bind(title, content, new Date().toISOString()).run();
+      return Response.json({ ok: true });
+    }
+    return env.ASSETS.fetch(request);
+  }
+};
+#+end_src
+
+在配置文件中添加两行：
+
+#+begin_src json
+{
+  // ...
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS", ///< binding the env.ASSETS
+    "run_worker_first": ["/api/*"] ///< here is the new line
+  },
+  // ...
+}
+#+end_src
+
+创建前端 =public/index.html= ：
+
+#+begin_src html
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Notes</title>
+	</head>
+	<body>
+		<form id="form">
+			<input type="text" id="title" placeholder="Title" required />
+			<input type="text" id="content" placeholder="Content" required />
+			<button type="submit">Submit</button>
+		</form>
+		<script>
+			document.getElementById("form").addEventListener("submit", async (e) => {
+				e.preventDefault();
+				const res = await fetch("/api/note", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ title: document.getElementById("title").value, content: document.getElementById("content").value })
+				});
+				if (res.ok) alert("Successfully!");
+			});
+		</script>
+	</body>
+</html>
+#+end_src
+
+本地运行测试：
+
+#+begin_note
+
+如果需要先本地测试，那么数据库的选项需要注意，改成本地：
+
+#+begin_src json
+{
+  // ...
+	"d1_databases": [
+		{
+			"binding": "blog_db",
+			"database_name": "blog-db",
+			"database_id": "<Your ID>",
+			"remote": false ///< Here, false indicates local
+		}
+	],
+  // ...
+}
+#+end_src
+
+#+end_note
+
+#+begin_src bash
+  npx wrangler dev
+#+end_src
+
+之后在网页中输入标题和内容，并提交，正常来说就能看到成功提示框了，之后通过如下命令查询数据库内容：
+
+#+begin_src bash
+  npx wrangler d1 execute "blog-db" --local --command="SELECT * FROM notes;"
+#+end_src
+
+正常来说输出如下：
+
+#+begin_example
+ ⛅ wrangler 4.98.0
+───────────────────
+Resource location: local
+
+Use --remote if you want to access the remote instance.
+
+🌀 Executing on local database blog-db (<Your ID>) from .wrangler/state/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 1 command executed successfully.
+┌────┬──────────┬───────────────────────────┬──────────────────────────┐
+│ id │ title    │ content                   │ created_at               │
+├────┼──────────┼───────────────────────────┼──────────────────────────┤
+│ 1  │ 20260605 │ cloudflare+worker白嫖指南 │ 2026-06-05T15:13:47.559Z │
+└────┴──────────┴───────────────────────────┴──────────────────────────┘
+#+end_example
+
+本地测试可用之后，就可以推送到远端部署了：
+
+#+begin_src bash
+  wrangler d1 execute blog-db --remote --command="CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, content TEXT, created_at TEXT);"
+  npx wrangler deploy
+#+end_src
+
+部署之后会有成功的输出：
+
+#+begin_example
+ ⛅ wrangler 4.98.0
+───────────────────
+🌀 Building list of assets...
+✨ Read 1 file from the assets directory /cloudflare/laura-blog/public
+🌀 Starting asset upload...
+🌀 Found 1 new or modified static asset to upload. Proceeding with upload...
++ /index.html
+Uploaded 1 of 1 asset
+✨ Success! Uploaded 1 file (0.91 sec)
+
+Total Upload: 0.55 KiB / gzip: 0.35 KiB
+Worker Startup Time: 4 ms
+Your Worker has access to the following bindings:
+Binding                    Resource
+env.blog_db (blog-db)      D1 Database
+env.ASSETS                 Assets
+
+Uploaded laura-blog (5.66 sec)
+Deployed laura-blog triggers (1.32 sec)
+  https://<Your URL>
+Current Version ID: <Your ID>
+#+end_example
+
+测试，添加一条记录，之后查询远程数据库：
+
+#+begin_src bash
+  npx wrangler d1 execute "blog-db" --remote --command="SELECT * FROM notes;"
+#+end_src
+
+跟本地类似的输出：
+
+#+begin_example
+ ⛅ wrangler 4.98.0
+───────────────────
+Resource location: remote
+
+🌀 Executing on remote database blog-db (<Your ID>):
+🌀 To execute on your local development database, remove the --remote flag from your wrangler command.
+🚣 Executed 1 command in 0.16ms
+┌────┬──────────┬───────────────────────────┬──────────────────────────┐
+│ id │ title    │ content                   │ created_at               │
+├────┼──────────┼───────────────────────────┼──────────────────────────┤
+│ 1  │ 20260605 │ cloudflare+worker白嫖指南 │ 2026-06-05T15:22:43.869Z │
+└────┴──────────┴───────────────────────────┴──────────────────────────┘
+#+end_example
 
 ** =PinMe 2.0=
 
