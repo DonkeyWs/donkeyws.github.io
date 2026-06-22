@@ -1,0 +1,9 @@
+#+title: 永磁同步电机
+#+date: 2026/06/05
+#+author: "Donkey" <anjingyu_ws@foxmail.com>
+
+** 楔子(Prologue)
+
+
+** 永磁同步电机选型
+

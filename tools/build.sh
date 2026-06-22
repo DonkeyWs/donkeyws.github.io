@@ -4,13 +4,12 @@
 #
 # Author: donkey <anjingyu_ws@foxmail.com>
 
-readonly __VERSION__="0.2.0"
+readonly __VERSION__="0.2.1"
 
 # Stop script on NZEC
 # set -e
 # Stop script if unbound variable found (use ${var:-} if intentional)
-set -u
-set -o pipefail
+set -uo pipefail
 exec 3>&1
 
 # Assume the terminal is a MODERN terminal
@@ -124,13 +123,14 @@ function build_one_file()
     local _THEME_DIR="$5"
 
     local _INPUT_FILE_BN=`basename $_INPUT_FILE`
-
-    # Only support .md/markdown and .org
-    if [[ "$_INPUT_FILE_BN" != *'.md' ]] && [[ "$_INPUT_FILE_BN" != *'.markdown' ]] && [[ "$_INPUT_FILE_BN" != *'.org' ]]; then
-        return
-    fi
-
     local _INPUT_DIR=`dirname $_INPUT_FILE`
+
+    case "$_INPUT_FILE_BN" in
+        *'.png' | *'.jpg' | *'.jpeg' | *'.svg' | *'.webp' | *'.bmp')
+            cp -rf $_INPUT_FILE "$_OUTPUT_DIR/$_INPUT_FILE_BN"
+            return
+            ;;
+    esac
 
     local _OUTPUT_FILE="$_OUTPUT_DIR/${_INPUT_FILE_BN%.*}.html"
 
@@ -217,6 +217,7 @@ function build_one_file()
     else
         case "$_INPUT_FILE_BN" in
             *'.png' | *'.jpg' | *'.jpeg' | *'.svg' | *'.webp' | *'.bmp')
+                cp -rvf $_INPUT_FILE "$_OUTPUT_DIR/$_INPUT_FILE_BN"
                 ;;
             *)
                 warning "Unsupported format: ${red}${_INPUT_FILE_BN//*.}${normal}"

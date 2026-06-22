@@ -1,0 +1,61 @@
+#+title: 用 lilypond 打谱百妖谱的乐谱
+#+date: 2026/06/22
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** 楔子(Prologue)
+
+孩子在学长笛，又比较喜欢《百妖谱》的动漫歌曲，于是在B站上找了好心UP主分享的简谱，不过清晰度等都比较有限，
+而且后续喜欢的乐谱也不一定总能找到，所以决定自己研究下打谱，最终发现， =EMACS= 配合 =lilypond= 就是个不错的选择，隧搞起。
+
+** 环境安装(Setup)
+
+#+begin_note
+  笔者用的是 =Ubuntu 24.04= 系统，以及家中的一个 =macOS= ，所以后面的操作以这两个平台为主。
+#+end_note
+
+在 =Ubuntu= 上安装 ~lilypond~ 非常容易，只需要从软件源中直接安装即可，而且安装过程还会贴心的为你安装好对应的 =EMACS= 扩展：
+
+#+begin_src bash
+  sudo apt install -y lilypond
+#+end_src
+
+安装完成后，你可以通过 ~lilypond --version~ 来查看是否安装成功，成功的话就会有版本信息输出，对于 =Ubuntu 24.04= 来说，这个版本是 ~2.24.3~ 。
+到这里，其实 ~lilypond~ 就已经安装完成，可以使用了，我们可以直接打开编辑器(~EMACS~)编写一个官方例子测试下，创建文件 ~1.ly~ ：
+
+#+begin_src lilypond
+  \header{ tagline="" }
+  \relative c' {
+    f e d c
+    b a g a
+    b c d e
+    f g f e
+    d c b a
+    g1
+  }
+#+end_src
+
+之后通过命令行编译：
+
+#+begin_src bash
+  # --pdf: 是生成PDF格式的文件
+  # -o: 是指定输出文件路径，扩展名会自动添加
+  lilypond --pdf -o 1 1.ly
+#+end_src
+
+最终会生成一段包含如下旋律的PDF文件，好处就是可以无限放大，清晰保真，打印出来的效果比图片好太多了：
+
+[[file:images/notations.png]]
+
+如果你恰巧也跟笔者一样，使用 ~EMACS~ 编辑器，那么接下来的部分可能对你有所帮助，可以通过配置 ~EMACS~ 来实现友好的 ~lilypond~ 乐谱编辑，
+如果你不使用 ~EMACS~ ，那么我推荐你使用[[https://www.frescobaldi.org][frescobaldi]]，这也是官方推荐的所见即所得编辑器之一。
+
+*** EMACS 配置
+
+
+
+** 基础(Basic)
+
+** 简谱(jianpu-ly)
+
+** 效果展示(Showtime)
+

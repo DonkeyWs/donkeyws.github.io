@@ -1,0 +1,8 @@
+#+title: Emacs 入门
+#+date: 2026/06/18
+#+author: anjingyu <anjingyu_ws@foxmail.com>
+
+** 基础操作
+
+** 制作乐谱
+
