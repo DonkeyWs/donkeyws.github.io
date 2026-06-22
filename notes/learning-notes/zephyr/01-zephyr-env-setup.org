@@ -14,9 +14,11 @@
 
 #+begin_note
 这里只介绍 =macOS= 上的一种方案，因为笔者是在一台老旧的 =Macbook Pro 2015= 笔记本上搭建的环境，
-此时最流行的报管理工具 =brew= 已经不在支持此设备，索性 =macport= 还可以用，所以这里就是用 =macport=
+此时最流行的报管理工具 =brew= 已经不在支持此设备，所幸 =macport= 还可以用，所以这里就是用 =macport=
 在一台 =x64= 架构的 =macOS= 上搭建环境。
 #+end_note
+
+=macOS= 安装需要的软件包：
 
 #+begin_src bash
   # 安装 Xcode Command Line Tools
@@ -29,5 +31,41 @@
   sudo port install cmake ninja gperf python3 ccache qemu dtc wget
 #+end_src
 
+在 =Ubuntu= 上安装也很简单：
 
+#+begin_src bash
+  sudo apt install -y git cmake ninja-build gperf \
+      ccache dfu-util device-tree-compiler wget \
+      python3-dev python3-pip python3-setuptools python3-tk python3-wheel \
+      xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev \
+      libmagic1
+#+end_src
+
+之后就可以安装 ~zephyr~ 转述的工具了：
+
+#+begin_src bash
+  pip3 install --user -U west
+  west --version
+#+end_src
+
+初始化工作区：
+
+#+begin_src bash
+  # 创建工作目录
+  mkdir ~/zephyrproject
+  cd ~/zephyrproject
+
+  # 初始化 west 工作区（使用 Zephyr 主分支）
+  west init -m https://github.com/zephyrproject-rtos/zephyr
+
+  # 更新所有模块（这一步会下载 Zephyr 及其依赖）
+  west update
+#+end_src
+
+导出 =CMake= 包，让 =CMake= 可以找到 ~zephyr~ ：
+
+#+begin_src bash
+  # 在 ~/.cmake/packages/ 目录中创建相关文件
+  west zephyr-export
+#+end_src
 
