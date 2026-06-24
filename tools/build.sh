@@ -125,6 +125,10 @@ function build_one_file()
     local _INPUT_FILE_BN=`basename $_INPUT_FILE`
     local _INPUT_DIR=`dirname $_INPUT_FILE`
 
+    if [ ! -d "$_OUTPUT_DIR" ]; then
+        mkdir -p "$_OUTPUT_DIR"
+    fi
+
     case "$_INPUT_FILE_BN" in
         *'.png' | *'.jpg' | *'.jpeg' | *'.svg' | *'.webp' | *'.bmp')
             cp -rf $_INPUT_FILE "$_OUTPUT_DIR/$_INPUT_FILE_BN"
@@ -143,10 +147,6 @@ function build_one_file()
     if [ ! -f "$_THEME_DIR/styling.css" ]; then
         error "Required file missing: ${yellow}$_THEME_DIR/styling.css${normal}"
         exit 128
-    fi
-
-    if [ ! -d "$_OUTPUT_DIR" ]; then
-        mkdir -p "$_OUTPUT_DIR"
     fi
 
     local declare _OPTS=("--css=/static/$(basename $_THEME_DIR)/styling.css" "--resource-path=.:${CUR_DIR}" "--mathjax=${CUR_DIR}/mathjax/tex-mml-chtml.min.js" "--to=html5")
