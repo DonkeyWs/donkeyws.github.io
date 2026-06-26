@@ -55,7 +55,29 @@
 
 ** 基础(Basic)
 
+有大佬准备了比较全面的[[https://www.yuque.com/qqbunny/lilypond-reference][lilypond 中文参考手册]][fn:1]，相当 ~NICE~ ，官方的参考手册很长，有 =900+= 页。
+
 ** 简谱(jianpu-ly)
 
+虽然孩子习惯使用五线谱，但是作为菜鸡的我还是习惯简谱，很巧的时候，有大佬开源可以通过 =lilypond= 生成简谱的插件，安装也很简单：
+
+#+begin_src bash
+  pip install jianpu-ly
+#+end_src
+
+#+begin_note
+  看官方描述， ~jianpu-ly~ 只支持到 ~lilypond~ 的 ~2.22~ 版本，不过 ~macOS~ 和 ~Ubuntu 24.04~ 中的版本都高一些。
+  所以会不兼容，不得不自己学一学 ~GNU Guile~ 去扩展和修改下。
+#+end_note
+
+#+begin_src
+
+#+end_src
+
 ** 效果展示(Showtime)
+
+
+** 参考(Reference)
+
+- [fn:1] https://www.yuque.com/qqbunny/lilypond-reference
 

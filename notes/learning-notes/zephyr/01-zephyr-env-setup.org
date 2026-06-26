@@ -69,3 +69,18 @@
   west zephyr-export
 #+end_src
 
+安装 ~Python~ 依赖：
+
+#+begin_src bash
+  cd zephyr
+  pip3 install --user -r scripts/requirements.txt
+
+  # 使用虚拟环境，避免污染系统环境
+  python3 -m venv ~/zephyr/.venv
+  source ~/zephyr/.venv/bin/activate  # Linux/macOS
+  # 或 Windows: ~/zephyr/.venv/Scripts/activate
+  pip install -r scripts/requirements.txt
+#+end_src
+
+安装 ~Zehpyr SDK~ ：
+
