@@ -1,0 +1,275 @@
+#+title: West 核心工具使用
+#+date: 2026/06/30
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** 楔子(Prologue)
+
+上一章完成了基本的环境配置，并为 ~ESP32-C3~ 编译了 ~hello_world~ 样例工程，接下来就是学习实际开发中使用到最多的工具 ~west~ ，这个工具贯穿了 ~zephyr~ 开发的全生命周期，相关的命令一定要牢记。
+
+#+begin_src bash
+  ~west~ 是一个很值得学习的工具，因为它不但是 ~zephyr~ 的核心工具，根式一个支持多 ~git~ 管理的强大工具，
+  即使你的项目跟 ~zephyr~ 无关，也一样可以使用 ~west~ 管理，是团队多仓库大型项目协作的开发利器。
+#+end_src
+
+** 命令
+
+*** 初始化工作区
+
+#+begin_src bash
+  # 使用默认配置初始化工作区
+  west init ~/zephyr
+
+  # 指定 Manifest 和分支
+  west init -m https://github.com/zephyrproject-rtos/zephyr --mr v3.5.0 ~/zephyr-v3.5
+
+  # 使用本地 Manifest 文件
+  west init --mf my-manifest.yml ~/my-project
+#+end_src
+
+初始化之后的工作区结构：
+
+#+begin_example
+zephyr/                      # 工作区根目录
+├── .west/                   # west 配置目录
+│   └── config               # west 配置文件
+├── zephyr/                  # Zephyr 主仓库（Manifest 仓库）
+│   ├── west.yml             # Manifest 文件
+│   ├── CMakeLists.txt
+│   └── ...
+├── modules/                 # 依赖模块（west update 后创建）
+├── tools/                   # 工具链和工具
+└── bootloader/              # 引导加载程序
+#+end_example
+
+*** 更新依赖
+
+#+begin_src bash
+  # 更新所有项目
+  west update
+
+  # 只更新特定项目
+  west update hal_nordic mcuboot
+
+  # 强制重新获取（解决网络问题导致的不完整下载）
+  west update --fetch always
+
+  # 更新并自动 rebase 本地修改
+  west update --rebase
+#+end_src
+
+*** 构建项目
+
+#+begin_src bash
+  # 构建 hello_world 示例（在示例目录中执行）
+  cd ~/zephyr/zephyr/samples/hello_world
+  west build -b nrf52840dk_nrf52840
+
+  # 指定源码目录和构建目录
+  west build -b nrf52840dk_nrf52840 -d build samples/hello_world
+
+  # 清理后重新构建
+  west build -b nrf52840dk_nrf52840 -p auto
+
+  # 传递 CMake 参数
+  west build -b nrf52840dk_nrf52840 -- -DCONF_FILE=prj_custom.conf
+
+  # 只编译，不重新配置
+  west build
+
+  # 构建特定目标
+  west build -t menuconfig    # 打开配置菜单
+  west build -t clean         # 清理构建输出
+#+end_src
+
+*** 烧录固件
+
+#+begin_src bash
+  # 烧录到目标板（使用默认 runner）
+  west flash
+
+  # 指定构建目录
+  west flash -d build
+
+  # 指定烧录器
+  west flash --runner jlink
+
+  # 查看支持的烧录器
+  west flash --context
+
+  # 传递烧录器参数
+  west flash --runner jlink -- --speed 4000
+#+end_src
+
+*** 调试命令
+
+#+begin_src bash
+  # 启动调试会话（使用默认 runner）
+  west debug
+
+  # 指定调试器
+  west debug --runner jlink
+
+  # 只启动 GDB 服务器，不启动 GDB 客户端
+  west debugserver
+#+end_src
+
+基本调试命令示例：
+
+#+begin_src bash
+  # 启动调试
+  west debug
+
+  # GDB 调试命令
+  (gdb) break main              # 在 main 函数设置断点
+  (gdb) continue                # 继续执行
+  (gdb) next                    # 单步执行（不进入函数）
+  (gdb) step                    # 单步执行（进入函数）
+  (gdb) print variable          # 打印变量值
+  (gdb) backtrace               # 查看调用栈
+  (gdb) info registers          # 查看寄存器
+  (gdb) quit                    # 退出调试
+#+end_src
+
+*** 其他命令
+
+#+begin_src bash
+  # 连接到目标板的串口
+  west attach
+
+  # 指定串口设备
+  west attach -p /dev/ttyUSB0
+
+  # 指定波特率
+  west attach -b 115200
+
+  # 列出所有支持的板子
+  west boards
+
+  # 搜索特定板子
+  west boards nrf52
+
+  # 显示板子详细信息
+  west boards -n nrf52840dk_nrf52840
+
+  # 查看所有配置
+  west config -l
+
+  # 设置配置项
+  west config build.board nrf52840dk_nrf52840
+  west config build.dir-fmt "build/{board}"
+
+  # 删除配置项
+  west config -d build.board
+
+  # 显示工作区根目录
+  west topdir
+
+  # 在脚本中使用
+  ZEPHYR_BASE=$(west topdir)/zephyr
+#+end_src
+
+*** 管理多仓库
+
+以上是 ~zephyr~ 默认的工作区模式，实际上 ~west~ 还支持其他模式，对于非 ~zephyr~ 的多仓库项目，可以使用如下模式：
+
+1. 创建 ~manifest~ 仓库，内部只包含 ~west.yml~ 文件，描述你的项目工作空间：
+
+#+begin_src yaml
+  manifest:
+    remotes:
+      - name: origin
+        url-base: https://github.com/your-org
+      - name: zephyr-upstream
+        url-base: https://github.com/zephyrproject-rtos
+    defaults:
+      remote: origin
+      revision: main 
+
+    projects:
+      - name: iot-gateway-app
+        path: app
+        revision: e71a2f9     # ✅ 发布态锁 SHA；开发态可写 main
+
+      - name: iot-gateway-hal
+        path: hal
+        revision: v1.3.0      # 也可以锁 tag
+
+      - name: iot-gateway-proto
+        path: proto
+        revision: main        # 什么都不写，默认就是 main
+
+      # 例：引入上游 zephyr 的某个 hal 作为依赖
+      - name: hal_stm32
+        remote: zephyr-upstream
+        revision: v3.5.0
+        path: modules/hal/stm32
+
+    self:
+      path: .manifest     # 这里在 west 初始化之后，会将当前仓库放到 .manifest 目录中
+      west-commands: scripts/west-commands.yml # 仓库中带了一个自定义命令的列表
+#+end_src
+
+2. 之后你可以通过如下命令来克隆整个工作空间：
+
+#+begin_src bash
+  west init -m https://github.com/your-org/manifest workspace
+  cd workspace
+  west update
+#+end_src
+
+3. 后续的仓库仍然单独开发，单独管理，需要统一发布版本的时候通过：
+
+  #+begin_src bash
+    # 统一打标签
+    west forall -c "git tag v0.1.0"
+    # 统一提交所有标签
+    west forall -c "git push --tags"
+
+    # 也可以只操作指定的项目
+    west forall -p hal_nordic,mcuboot -c "git status"
+  #+end_src
+
+4. 高级用法是使用自动以命令来做其他事情，比如统一打 ~tag~ ，并推送，
+   这里的脚本就是 ~manifest/scripts/west-commands.yml~ 中指定的：
+
+  #+begin_src yml
+    west-commands:
+      - file: scripts/west_commands/release.py
+        commands:
+          - name: release
+            class: Release
+            help: Publish release version
+  #+end_src
+
+  #+begin_src python
+    #!/usr/bin/env python3
+    # -*- coding: utf-8 -*-
+
+    from west.commands import WestCommand
+    from west import log
+
+    class ReleaseCommand(WestCommand):
+        def __init__(self):
+            super().__init__(
+                'release',
+                'Publish release version',
+                'Create tag and publish the release tag'
+            )
+
+        def do_add_parser(self, parser_adder):
+            parser = parser_adder.add_parser(
+                self.name,
+                help=self.help,
+                description=self.description
+            )
+
+            parser.add_argument('-t', '--tag', required=True,
+                help='Tag name')
+            return parser
+
+        def do_run(self, args, unknown_args):
+            log.inf(f'Publish tag: {args.tag}')
+
+            # Run git commands to create tags and push to the remote repositories
+  #+end_src
+

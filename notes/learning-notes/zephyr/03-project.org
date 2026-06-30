@@ -1,0 +1,10 @@
+#+title: Zephyr 工程结构
+#+date: 2026/06/30
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** 楔子(Prologue)
+
+要使用 ~zephyr~ 开发你的项目，适配你的主板，那么了解 ~zephyr~ 的结构，以及了解如何配置它是必不可少的。
+
+** 
+
