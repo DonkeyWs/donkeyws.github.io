@@ -141,7 +141,7 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
   ; => "Hello Jane!"
   REPL> (define name "Jane")
   REPL> (string-append "Hello " name "!")
-  ; => "Hello Jane!
+  ; => "Hello Jane!"
 #+end_src
 
 但是，如果 ~define~ 后面的内容被括号包裹， ~Scheme~ 会将其解释为一个过程定义：
@@ -237,7 +237,7 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
   		chatty-name (apply + nums)))
   REPL> (chatty-add "Chester" 2 4 8 6)
   ; Prints:
-  ;   <Chester> If you add those together you get 20!""))
+  ;   <Chester> If you add those together you get 20!
 #+end_src
 
 虽然这在 ~Scheme~ 中并非标准功能，但许多 ~Scheme~ 实现也支持可选参数和关键字参数。 ~Guile~ 将这种抽象实现为 ~define*~ ：
@@ -275,7 +275,7 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
   ;   You walk into Horace's Hardware, grab something from the shelves,
   ;   and walk up to the counter.
   ;
-  ;   Horace looks at you and says, '3 screws, eh? That'll be 6 coins!'"")))
+  ;   Horace looks at you and says, '3 screws, eh? That'll be 6 coins!'
 #+end_src
 
 最后， ~Scheme~ 的过程还能实现另一个有趣的功能：它们可以使用 ~values~ 返回多个值！举个特别简单的例子，
@@ -283,13 +283,13 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define (add-and-multiply x y)
-  	        (values (+ x y)
-  			                (* x y)))
+  	(values (+ x y)
+  		(* x y)))
   REPL> (add-and-multiply 2 8)
   ; => 10
   ; => 16
   REPL> (define-values (added multiplied)
-  	        (add-and-multiply 3 10))
+  	(add-and-multiply 3 10))
   REPL> added
   ; => 13
   REPL> multiplied
@@ -321,6 +321,1131 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
       <CONSEQUENT>
       [<ALTERNATE>])
 #+end_src
+
+~<ALTERNATE>~ 周围的方括号表示该项为可选项。[fn:6]
+
+那么，我们可以写一个有趣的函数，兴奋地报告一个对象是不是字符串：
+
+#+begin_src scheme
+  REPL> (define (string-enthusiast obj)
+  	(if (string? obj)
+  	    "Oh my gosh you gave me A STRING!!!"
+  	    "That WASN'T A STRING AT ALL!! MORE STRINGS PLEASE!"))
+  REPL> (string-enthusiast "carrot")
+  ; => "Oh my gosh you gave me A STRING!!!"
+  REPL> (string-enthusiast 529)
+  ; => "That WASN'T A STRING AT ALL!! MORE STRINGS PLEASE!"
+#+end_src
+
+我们可以看到，与其他一些流行语言不同， ~if~ 也会根据 ~<TEST>~ 来返回所执行分支的求值结果。
+
+~Scheme~ 还附带了一些数学比较测试。 ~>~ 和 ~<~ 分别表示“大于”和“小于”， ~>=~ 和 ~<=~ 表示“大于等于”和“小于等于”，
+而 ~=~ 用于检查数值是否相等：[fn:7]
+
+#+begin_src scheme
+  REPL> (> 8 9)
+  ; => #f
+  REPL> (< 8 9)
+  ; => #t
+  REPL> (> 8 8)
+  ; => #f
+  REPL> (>= 8 8)
+  ; => #t
+#+end_src
+
+如果我们想要测试多种可能性，可以使用嵌套的 ~if~ 语句：
+
+#+begin_src scheme
+  REPL> (define (goldilocks n smallest-ok biggest-ok)
+  	(if (< n smallest-ok)
+  	    "Too small!"
+  	    (if (> n biggest-ok)
+  		"Too big!"
+  		"Just right!")))
+  REPL> (goldilocks 3 10 20)
+  ; => "Too small!"
+  REPL> (goldilocks 33 10 20)
+  ; => "Too big!"
+  REPL> (goldilocks 12 10 20)
+  ; => "Just right!"
+#+end_src
+
+不过，有一种更简洁的语法，名为 ~cond~ ，我们可以用它来替代，其形式如下：[fn:8]
+
+#+begin_src scheme
+  (cond
+   (<TEST>
+    <THEN-BODY> ...) ...
+    [(else <ELSE-BODY> ...)])
+#+end_src
+
+对比一下，我们的 ~goldilocks~ 过程在使用 ~cond~ 而非嵌套的 ~if~ 语句时看起来要简洁美观得多：
+
+#+begin_src scheme
+  ;; 嵌套 "if" 版本
+  (define (goldilocks n smallest-ok biggest-ok)
+    (if (< n smallest-ok)
+        "Too small!"
+        (if (> n biggest-ok)
+  	  "Too big!"
+  	  "Just right!")))
+
+  ;; "cond" 版本
+  (define (goldilocks n smallest-ok biggest-ok)
+    (cond
+     ((< n smallest-ok)
+      "Too small!")
+     ((> n biggest-ok)
+      "Too big!")
+     (else
+      "Just right!")))
+#+end_src
+
+~Scheme~ 还提供了几种不同的方法来判断两个对象是否为同一个事物。对众多相等性谓词最简短、
+最简单（但并不全面）的概括是： ~equal?~ 基于内容等价性进行比较，
+而 ~eq?~ 基于对象标识（由语言的运行时定义）进行比较[fn:9]。
+例如， ~list~ 每次都会构造一个具有新标识的新列表，因此以下内容是 ~equal?~ 相等的，但并非 ~eq?~ 相等：
+
+#+begin_src scheme
+  REPL> (define a-list (list 1 2 3))
+  REPL> (define b-list (list 1 2 3))
+  REPL> (equal? a-list a-list)
+  ; => #t
+  REPL> (eq? a-list a-list)
+  ; => #t
+  REPL> (equal? a-list b-list)
+  ; => #t
+  REPL> (eq? a-list b-list)
+  ; => #f
+#+end_src
+
+最后，在 ~Scheme~ 中，任何不是 ~#f~ 的内容都被视为真。这种特性有时会与 ~member~ 函数配合使用——该函数会查找匹配的元素，
+若找到则返回剩余的列表，否则返回 ~#f~ ：
+
+#+begin_src scheme
+  REPL> (member 'b '(a b c))
+  ; => (b c)
+  REPL> (member 'z '(a b c))
+  ; => #f
+  REPL> (define (fruit-sleuth fruit basket)
+  	(if (member fruit basket)
+  	    "Found the fruit you're looking for!"
+  	    "No fruit found! Gadzooks!"))
+  REPL> (define fruit-basket '(apple banana citron))
+  REPL> (fruit-sleuth 'banana fruit-basket)
+  ; => "Found the fruit you're looking for!"
+  REPL> (fruit-sleuth 'pineapple fruit-basket)
+  ; => "No fruit found! Gadzooks!"
+#+end_src
+
+** 列表与“cons”(List and "cons")
+
+对于结构化数据， ~Scheme~ 支持可包含任意其他类型的列表[fn:10]。以下是书写同一列表的两种方式：
+
+#+begin_src scheme
+  REPL> (list 1 2 "cat" 33.8 'foo)
+  ; => (1 2 "cat" 33.8 foo)
+  REPL> '(1 2 "cat" 33.8 foo)
+  ; => (1 2 "cat" 33.8 foo)
+#+end_src
+
+上述两者的一个区别在于，在后面引用的示例中，符号 ~foo~ 无需加引号，因为外层列表的引号免除了其内部所有内容的求值。
+
+此外，表达式中的引号是累积的。请注意在后一个示例中，由于整个列表都被加了引号，因此列表成员 ~foo~ 无需再加引号。
+在 ~foo~ 前额外添加一个引号是合法的，但这可能会让后续对列表的操作变得更麻烦，因为需要多次“去引号”或对其求值才能还原出实际的符号。
+
+#+begin_src scheme
+  REPL> '(foo 'bar '''baz)
+  ; => (foo (quote bar) (quote (quote (quote baz))))
+#+end_src
+
+存在一种被称为“空表”的“特殊”列表，它是不含任何元素的列表，仅表示为 ~'()~
+（也称为 ~nil~ ，并且在标准 ~Scheme~ 中，这是唯一在 ~null?~ 谓词作用下会返回 ~#t~ 的对象）。
+~Scheme~ 中的列表实际上是“链表”，由被称为“序对”的组合构成，这些序对以空表为结尾：
+
+#+begin_src scheme
+  REPL> '()
+  ; => ()
+  REPL> (cons 'a '())
+  ; => (a)
+  REPL> (cons 'a (cons 'b (cons 'c '())))
+  ; => (a b c)
+#+end_src
+
+后者等价于以下任意一种形式：
+
+#+begin_src scheme
+  REPL> (list 'a 'b 'c)
+  ; => (a b c)
+  REPL> '(a b c)
+  ; => (a b c)
+#+end_src
+
+出于非常历史的原因[fn:11]，访问 ~cons~ 单元的第一个元素需使用 ~car~ ，访问其第二个元素则使用 ~cdr~（发音为“could-er”）：[fn:12]
+
+#+begin_src scheme
+  REPL> (car '(a b c))
+  ; => a
+  REPL> (cdr '(a b c))
+  ; => (b c)
+  REPL> (car (cdr '(a b c)))
+  ; => b
+#+end_src
+
+~cons~ 的第二个元素不必是另一个 ~cons~ 单元或空列表。若不是，则它被视为“点对列表”，并拥有一种 ~Lisp~ 中不常见的中缀语法：
+
+#+begin_src scheme
+  REPL> (cons 'a 'b)
+  ; => (a . b)
+#+end_src
+
+注意这一点在结构上与以下内容有所不同：
+
+#+begin_src scheme
+  REPL> (cons 'a (cons 'b '()))
+  ; => (a b)
+#+end_src
+
+很容易陷入拆解 ~cons~ 单元格的困境（可以说， ~schemer~ 们确实太频繁地这么做，但 ~cons~ 也同样优雅且强大）。[fn:13]
+
+从某种意义上说，本小节是一段题外话。我们在本文中有意不大量使用 ~cons~ ，
+并且完全没有在正文里提及 ~car~ 和 ~cdr~ 。这可能会引出一个问题：为何要专门加入关于列表的这一小节呢？
+
+原因在于，我们正为即将深入探讨的内容做铺垫，也就是 ~Scheme~ 的可扩展性。 ~Scheme~ 是基于其核心数据类型构建的，
+并且可以对这些数据类型进行修改。我们很快就会详细讲解这一点，不过举个例子来说，
+我们可以对任何表达式进行引用，从而将代码转换为数据：
+
+#+begin_src scheme
+  REPL> (+ 1 2 (- 8 4))
+  ; => 7
+  REPL> '(+ 1 2 (- 8 4))
+  ; => (+ 1 2 (- 8 4))
+  REPL> (let ((name "Horace"))
+  	(string-append "Hello " name "!"))
+  ; => "Hello Horace!"
+  REPL> '(let ((name "Horace"))
+  	 (string-append "Hello " name "!"))
+  ; => (let ((name "Horace")) (string-append "Hello " name "!"))
+#+end_src
+
+最后这个例子尤为耐人寻味：我们终于明白了符号在 ~Scheme~ 中如此重要的原因——函数和语法名在被引用时会被捕获为符号。
+从这个意义上说， ~Lisp~ （包括 ~Scheme~ ）是用 ~Lisp~ 编写的：程序员所看到的表示形式与编译器所看到的表示形式几乎没有区别，
+这一点在论 ~Scheme~ （以及一般意义上的 ~Lisp~ ）的可扩展性中有所体现。
+
+顺便说一下，撇号引号只是 ~(quote <EXPR>)~ 的简写形式：
+
+#+begin_src scheme
+  ;; 这两个是相同的
+  'foo
+  (quote foo)
+
+  ;; 并且这两个是相同的
+  '(lambda (x) (* x 2))
+  (quote (lambda (x) (* x 2)))
+#+end_src
+
+列表也可作为键与值之间的关联映射使用，这种映射被称为关联列表（ ~alist~ ）。存在多种便于查找的过程，
+例如 ~assoc~ ，它会在找到对应项时返回该键值对，未找到时则返回 ~#f~ 。
+
+#+begin_src scheme
+  REPL> (define animal-noises
+  	'((cat . meow)
+  	  (dog . woof)
+  	  (sheep . baa)))
+  REPL> (assoc 'cat animal-noises)
+  ; => (cat . meow)
+  REPL> (assoc 'alien animal-noises)
+  ; => #f
+#+end_src
+
+关联列表实现起来很简单，在 ~Scheme~ 的打印形式中看起来也足够美观，而且在函数式编程中使用起来也很便捷。
+（想给关联列表添加更多内容？只需在另一个 ~cons~ 单元上执行 ~cons~ 操作即可！）这使得它们往往受到 ~Scheme~ 程序员的青睐。
+不过，它们并非总是高效的。虽然 ~assoc~ 函数对于小型关联列表来说表现良好，但一个包含一千个元素的关联列表，
+要找到位于其底部的键值对需要遍历一千次。其他数据结构，例如提供平均常数时间查找性能的哈希映射，
+在许多 ~Scheme~ 实现中都有提供，有时会是更优的选择。
+
+除了反引号引用之外，还可以使用准引用，它使用反引号来开启准引用，使用逗号来取消引用。通过这种方式，
+我们可以在数据和代码的世界之间快速切换。例如，用一个多少有些杜撰的指标来将猫龄换算为人类年龄：
+
+#+begin_src scheme
+  REPL> (define (cat-years years)
+  	(cond
+  	 ((<= years 1)       ; 第一年相当于15岁
+  	  (* years 15))
+  	 ((<= years 2)
+  	  (+ 15 (* 9 (- years 1))))   ; 第二年加9岁
+  	 (else
+  	  (+ 24 (* 4 (- years 2)))))) ; 之后每年加4岁
+  REPL> (define (cat-entry name age)
+  	`(cat (name ,name)
+  	      (age  ,age)
+  	      (cat-years-age ,(cat-years age))))
+  REPL> (cat-entry "Missy Rose" 16)
+  ; => (cat (name "Missy Rose")
+  ;         (age 16)
+  ;         (cat-years-age 80))
+  REPL> (cat-entry "Kelsey" 22)
+  ; => (cat (name "Kelsey")
+  ;         (age 21)
+  ;         (cat-years-age 104))
+#+end_src
+
+哇！这些猫可真老啊！
+
+** 闭包(Closure)
+
+回想一下我们之前对 ~goldilocks~ 的定义和用法：
+
+#+begin_src scheme
+  REPL> (define (goldilocks n smallest-ok biggest-ok)
+  	(cond
+  	 ((< n smallest-ok)
+  	  "Too small!")
+  	 ((> n biggest-ok)
+  	  "Too big!")
+  	 (else
+  	  "Just right!")))
+  REPL> (goldilocks 3 10 20)
+  ; => "Too small!"
+  REPL> (goldilocks 33 10 20)
+  ; => "Too big!"
+  REPL> (goldilocks 12 10 20)
+  ; => "Just right!"
+#+end_src
+
+反复为 ~smallest-ok~ 和 ~biggest-ok~ 输入相同的值十分繁琐。~Goldilocks~ 的偏好范围不太可能在每次调用时都发生变化。
+我们能否打造一个带有记忆功能的 ~Goldilocks~ 版本，让我们只需传入 ~smallest-ok~ 和 ~biggest-ok~ 一次，
+却仍能针对多个 ~n~ 版本进行测试？答案是肯定的……闭包来救场！
+
+#+begin_src scheme
+  (define (make-goldilocks smallest-ok biggest-ok)
+    (define (goldilocks n)   ; 生成一个封装了
+      (cond                  ; smallest-ok 和 biggest-ok 的过程
+       ((< n smallest-ok)    ; 使得仅需传入参数 n
+        "Too small!")
+       ((> n biggest-ok)
+        "Too big!")
+       (else
+        "Just right!")))
+    goldilocks)              ; 返回 goldilocks 过程">)))))
+#+end_src
+
+我们现在可以调用 ~make-goldilocks~ ，它会返回包含的 ~goldilocks~ 过程[fn:14]。
+
+#+begin_src scheme
+  REPL> (make-goldilocks 10 30)
+  ; => #<procedure goldilocks (n)>>
+#+end_src
+
+现在我们可以反复调用内部的 ~goldilocks~ 。
+
+#+begin_src scheme
+  REPL> (define goldi
+  	(make-goldilocks 10 30))
+  REPL> (goldi 7)
+  ; => "Too small!"
+  REPL> (goldi 256)
+  ; => "Too big!"
+  REPL> (goldi 22)
+  ; => "Just right!""
+#+end_src
+
+外部过程“封闭”了内部过程，使其能够访问并记住 ~smallest-ok~ 和 ~biggest-ok~ 。
+
+值得注意的是，这与 ~Goblins~ 为其对象实现构造函数的模式完全相同：外部过程是构造函数，内部过程是对象的行为。
+（主要区别在于，用 ~spawn~ 生成的 ~Goblins~ 对象会获得一个 ~bcom~ 能力，它们可以利用该能力来改变自身的行为！）
+
+巧妙的是，我们也可以用同样的方法通过纯抽象来构建我们自己的 ~cons~ 单元。
+
+#+begin_src scheme
+  REPL> (define (abstract-cons car-data cdr-data)
+  	(lambda (method)
+  	  (cond
+  	   ((eq? method 'car)
+  	    car-data)
+  	   ((eq? method 'cdr)
+  	    cdr-data)
+  	   (else (error "Unknown method:" method)))))
+  REPL> (define our-cons (abstract-cons 'foo 'bar))
+  REPL> (our-cons 'car)
+  ; => foo
+  REPL> (our-cons 'cdr)
+  ; => bar
+#+end_src
+
+从这个意义上说，闭包也是由程序本身的代码流构建的数据结构。
+
+闭包是词法作用域的一种属性。我们在 ~Goblins~ 中利用了这一点：一个对象所能访问的权限，仅仅是它在自身行为作用域内所拥有的权限。
+
+** 迭代与递归(Iteration and recursion)
+
+编程的大部分内容都涉及操作序列，尤其是在包含其他信息的数据结构上。在函数式编程中，
+有一个特别实用的列表操作过程是 ~map~ ，它会将其第一个参数所对应的过程应用到序列中的每个元素上。
+
+例如， ~string-length~ 会给出给定字符串中包含的字符数量：
+
+#+begin_src scheme
+  REPL> (string-length "cat")
+  ; => 3
+  REPL> (string-length "gorilla")
+  ; => 7
+#+end_src
+
+所以，使用 ~map~ ，我们可以轻松构造一个列表，来表示其每个字符串的长度：
+
+#+begin_src scheme
+  REPL> (map string-length '("cat" "dog" "gorilla" "salamander"))
+  ; => (3 3 7 10)
+#+end_src
+
+我们也可以提供一个我们定义的过程：
+
+#+begin_src scheme
+  REPL> (define (symbol-length sym)
+  	(string-length (symbol->string sym)))
+  REPL> (map symbol-length '(basil oregano parsley thyme))
+  ; => (5 7 7 5)
+#+end_src
+
+事实上，我们并不要求给这个过程命名……我们可以使用 ~lambda~ 来构建一个匿名过程，并将其直接传递给 ~map~ ：
+
+#+begin_src scheme
+  REPL> (map (lambda (str)
+  	     (string-append "I just love "
+  			    (string-upcase str)
+  			    "!!!"))
+  	   '("strawberries" "bananas" "grapes"))
+  ; => ("I just love STRAWBERRIES!!!"
+  ;     "I just love BANANAS!!!"
+  ;     "I just love GRAPES!!!")
+#+end_src
+
+~map~ 每次都会通过构建结果列表来执行一些额外操作。但如果我们只想使用 ~display~ 把对某种食物的喜爱显示到屏幕上，
+而不打算对数据进行进一步处理呢？我们可以使用 ~for-each~ ，它的结构与 ~map~ 相同，但不会构建结果：
+
+#+begin_src scheme
+  REPL> (for-each (lambda (str)
+  		  (display
+  		   (string-append "I just love "
+  				  (string-upcase str)
+  				  "!!!\n")))
+  		'("ice cream" "fudge" "cookies"))
+  ; prints:
+  ;   I just love ICE CREAM!!!
+  ;   I just love FUDGE!!!
+  ;   I just love COOKIES!!!
+#+end_src
+
+注意！本小节——实际上是整个 ~Scheme~ 教程后续内容——中的以下文本，超出了理解我们论文《Spritely 的核心》主体部分所需的任何知识范畴！
+不过，它将极大地帮助新手加深对 ~Scheme~ 语言的理解。
+
+~Scheme~ 有一个令人惊讶的特性，即迭代实际上是基于递归定义的！
+
+这就是我们的意思。我们可以定义自己版本的 ~for-each~ ：
+
+#+begin_src scheme
+  (define (for-each proc lst)
+    (if (eq? lst '())  ; 列表是否为空？
+        'done          ; 若为空，返回 "done"
+        (let ((item (car lst)))  ; 不为空则取出当前元素
+  	(proc item)            ; 对当前元素执行过程
+  	(for-each proc (cdr lst)))))  ; 递归处理剩余元素
+#+end_src
+
+它会依次调用 ~proc~ 处理 ~lst~ 中的每一项，直到处理完所有项。如果你有其他编程语言的使用经验，
+你可能会认为这种设计可能会意外“导致栈溢出”。不过， ~Scheme~ 很智能：它会发现，当我们执行到最后一行时，
+当前版本的 ~for-each~ 就没有剩余工作要做了……换句话说， ~for-each~ 调用自身的位置处于“尾位置”。
+正因为如此， ~Scheme~ 能够避免在栈上分配新的帧，而是带着新的变量直接“跳转”回 ~for-each~ 的开头。
+这种机制被称为 ~tail call elimination~ ，在 ~Scheme~ 中，所有的迭代功能实际上都是通过递归以这种方式定义的。
+
+也可以构建树递归过程。以下（这部分稍有难度，若你不理解也没关系）过程可构建一棵二叉树：
+
+#+begin_src scheme
+  (define (build-tree depth)
+    (if (= depth 0)
+        '(0)
+        (list depth
+  	    (build-tree (- depth 1))
+  	    (build-tree (- depth 1)))))
+#+end_src
+
+#+begin_src scheme
+  REPL> (build-tree 3)
+  ; => (3 (2 (1 (0)
+  ;             (0))
+  ;          (1 (0)
+  ;             (0)))
+  ;       (2 (1 (0)
+  ;             (0))
+  ;          (1 (0)
+  ;             (0))))
+#+end_src
+
+或者，更清晰地可视化：
+
+#+begin_example
+       3
+      / \
+     /   \
+    2     2
+   / \   / \
+  1  1   1  1
+ /\  /\ /\  /\
+0 0 0 0 0 0 0 0
+#+end_example
+
+然而，与 ~for-each~ 不同， ~build-tree~ 不会在尾位置调用自身。按照这段代码的编写方式，
+无法在不将待执行任务压入栈的情况下直接“跳转”到过程开头：由于 ~list~ 正等待其结果，还有更多任务需要完成。
+因此，与 ~for-each~ 不同， ~build-tree~ 是递归的，但并非迭代的。
+
+最后，来谈谈一些便捷的语法。这里有两种 ~let~ 的变体，均适用于递归和迭代过程。第一种是 ~letrec~ ，它允许过程调用并引用自身，
+或是由 ~letrec~ 定义的其他过程，无需考虑定义顺序：
+
+#+begin_src scheme
+  REPL> (letrec ((alice
+  		(lambda (first?)
+  		  (report-status "Alice" first?)
+  		  (if first? (bob #f))))
+  	       (bob
+  		(lambda (first?)
+  		  (report-status "Bob" first?)
+  		  (if first? (alice #f))))
+  	       (report-status
+  		(lambda (name first?)
+  		  (display
+  		   (string-append name " is "
+  				  (if first?
+  				      "first"
+  				      "second")
+  				  "!\n")))))
+  	(alice #t)
+  	(display "-----\n")
+  	(bob #t))
+  ; prints:
+  ;   Alice is first!
+  ;   Bob is second!
+  ;   -----
+  ;   Bob is first!
+  ;   Alice is second!")))))
+#+end_src
+
+第二种有用的抽象是 ~let~ 的命名变体 ~named let~ ，其中循环名称标识符作为第一个参数出现：
+
+#+begin_src scheme
+  REPL> (let loop ((words '("carrot" "potato" "pea" "celery"))
+  		 (num-words 0)
+  		 (num-chars 0))
+  	(if (eq? words '())
+  	    (format #f "We found ~a words and ~a chars!"
+  		    num-words num-chars)
+  	    (loop (cdr words)
+  		  (+ num-words 1)
+  		  (+ num-chars (string-length (car words))))))
+  ; => "We found 4 words and 21 chars!"
+#+end_src
+
+~named let~ 的作用是定义命名过程（此处命名为 ~loop~ ），并立即使用 ~let~ 的初始绑定调用它。该过程在 ~let~ 的主体内可用，
+方便进行递归（可能是迭代）调用。
+
+** 变更、赋值及其他各类副作用(Mutation, assignment, and other kinds of side effects)
+
+本部分的加入是为了保证内容的完整性。值得注意的是，《哥布林》在此处针对其中大部分内容采用了一种不同的处理方式，我们将在后续末尾部分对此展开讨论。
+
+~Scheme~ 内置了一种使用 ~set!~ 重新赋值变量当前值的方法：
+
+#+begin_src scheme
+  REPL> (define chest 'sword)
+  REPL> chest
+  ; => sword
+  REPL> (set! chest 'gold)
+  REPL> chest
+  ; => gold
+#+end_src
+
+这甚至可以与闭包中展示的技术结合使用。例如，这里有一个对象示例，它会从初始数字 ~n~ 开始倒数，直到达到零，之后始终返回零。
+
+#+begin_src scheme
+  REPL> (define (make-countdown n)
+  	(lambda ()
+  	  (define last-n n)
+  	  (if (zero? n)
+  	      0
+  	      (begin
+  		(set! n (- n 1))
+  		last-n))))
+  REPL> (define cdown (make-countdown 3))
+  REPL> (cdown)
+  ; => 3
+  REPL> (cdown)
+  ; => 2
+  REPL> (cdown)
+  ; => 1
+  REPL> (cdown)
+  ; => 0
+  REPL> (cdown)
+  ; => 0
+#+end_src
+
+这个例子有几个有趣的地方：
+
+- 我们在计算中引入了时间与变化的概念。在引入赋值等副作用之前，使用相同参数调用一个过程总会得到相同的结果。
+  但在上述示例中， ~cdown~ 会随着时间改变其响应结果（即便调用时未传入任何参数）。
+- 由于我们希望在过程首次被调用时显示初始值，因此必须在使用 ~set!~ 更改 ~n~ 之前捕获 ~last-n~ 。
+  如果我们不小心颠倒了这个顺序，就会引入一个 ~bug~ ——在上面的示例中， ~cdown~ 的起始值会变成 ~2~ ，而不是 ~3~ 。
+- 在这里我们还能看到一种有趣的新语法： ~begin~ 。 ~begin~ 会按顺序执行多个表达式，并返回最后一个表达式的值。
+
+最后这一点很有意思。在引入各种效果（例如上面展示的赋值、在屏幕上显示内容、写入文件或数据库等）之前，
+~begin~ 完全没有存在的必要。要理解这一点，回顾一下本教程开头演示的替换方法即可：
+
+#+begin_src scheme
+  (* (- 8 (/ 30 5)) 21)   ; 起始表达式
+  (* (- 8 6) 21)          ; 简化：(/ 30 5) => 6
+  (* 2 21)                ; 简化：(- 8 6) => 2
+  42                      ; 简化：(* 2 21) => 42
+#+end_src
+
+在产生副作用之前，调用的每个过程都是为了计算程序的新部分。但由于if的每个分支只计算一个表达式，
+因此我们必须提供一种对备选子句进行排序的方式，以便既能 ~set!~ ，又能返回一个值。[fn:15]
+换句话说，纯函数式程序的本质是接收一系列输入，并精确地计算出一个值——每次都是同一个值。
+整个求值过程中都是一套清晰的替换规则。（换言之，在引入时间概念之前，我们所拥有的程序都是完全确定的。）
+
+然而，通过引入突变和副作用，我们为程序引入了一种强大却危险的全新构造：时间。
+我们的程序不再是纯粹的函数式程序，时间赋予了它们命令式的特性：先做这件事，再做那件事。
+时间代表着变化，而变化需要事件序列，而非单纯的替换。同时，时间也意味着相同的程序和过程在相同输入下运行，
+并非总能产生相同的输出。我们已然从一个永恒不变的世界，步入了一个不断变化的世界。
+
+尽管需要谨慎，但改变往往是可取的。我们生活在一个充满时间与变化的世界，我们的程序也常常如此。
+~Scheme~ 有一套（某种程度上并不统一）用于观察时间与变化的命名规范：添加一个 ~!~ 后缀，正如我们在 ~set!~ 中所见。
+~!~ 可以被视为一种警示，仿佛使用者在强调可变操作的可能性。
+（不过，Scheme 的运行时并不能保证该后缀的有无与可变操作有任何关联。）
+
+然而， ~set!~ 并非标准（以及非标准） ~Scheme~ 中唯一可用的变更与赋值形式。[fn:16]
+另一个示例是可变向量与 ~vector-set!~ ：
+
+#+begin_src scheme
+  REPL> (define vec (vector 'a 'b 'c))
+  REPL> vec
+  ; => #(a b c)
+  REPL> (vector-ref vec 1)
+  ; => b
+  REPL> (vector-set! vec 1 'boop)
+  REPL> (vector-ref vec 1)
+  ; => boop
+  REPL> vec
+  ; => #(a boop c)
+#+end_src
+
+这两个示例都类似于突变。不过，我们在本教程中已经见过另一种形式的副作用，即 ~display~ ，
+它会向屏幕输出内容。实际上， ~display~ 本身是基于端口的概念构建的，端口是 ~Scheme~ 中用于与输入输出设备进行读写操作的机制。
+
+所有这些都面临着与 ~set!~ 相同的挑战。简单来说，引入时间维度会让我们的程序失去“永恒性”。
+然而，事实证明我们无法从计算机中彻底消除所有时间和变化，正如这组嵌套引用所说明的那样：
+
+#+begin_example
+As Simon Peyton Jones, a well-known functional programmer, likes to say, "All you can do without side effects is push a button and watch the box get hot for a while." (Which isn't technically true, since even the box getting hot is a side effect.)
+— From Land of Lisp by Conrad Barski, M.D.
+
+正如著名函数式编程专家西蒙·佩顿·琼斯常说的：“没有副作用，你能做的所有事就是按下按钮，看着盒子热上一会儿。”（从技术上讲这话并不准确，因为就连盒子变热本身也是一种副作用。）"
+——出自康拉德·巴尔什医学博士所著的《《Lisp编程入门》》
+#+end_example
+
+正如西蒙和康拉德所指出的，函数式编程面临的挑战在于，尽管副作用可能存在风险，但在某种意义上，它们才是用户真正关心的东西。
+在某些时候，要让计算机发挥作用，就必须从用户那里读取输入并输出结果，而这些操作本质上都带有副作用。
+即使用一台繁忙的计算机发出的辐射热来给房子取暖，也是一种副作用。在某个节点，我们都必须进入并走出纯粹的数学世界。[fn:17]
+
+** 论 ~Scheme~ （以及一般意义上的 ~Lisp~ ）的可扩展性(On the extensibility of Scheme (and Lisps in general))
+
+假设我们想要一些新的语法。例如，当满足某个条件时，我们可能想按顺序运行多段代码。我们可以这样写：
+
+#+begin_src scheme
+  (if (our-test)
+      (begin
+        (do-thing-1)
+        (do-thing-2)))
+#+end_src
+
+但这样写有点难看。如果我们专门为此创建一种新的语法会怎么样呢？
+
+#+begin_src scheme
+  (when (our-test)
+    (do-thing-1)
+    (do-thing-2))
+#+end_src
+
+~when~ 无法被构建为函数，因为除非 ~(our-test)~ 通过，否则我们不希望执行 ~(do-thing-1)~ 或 ~(do-thing-2)~ 。我们需要新的语法。
+
+我们可以自己构建新语法吗？记住我们可以“用 ~Lisp~ 编写 ~Lisp~ ”，答案似乎是肯定的：
+
+#+begin_src scheme
+  REPL> (define (when test . body)
+  	`(if ,test
+  	     ,(cons 'begin body)))
+  REPL> (when '(our-test)
+  	'(do-thing-1)
+  	'(do-thing-2))
+  ; => (if (our-test)
+  ;        (begin
+  ;          (do-thing-1)
+  ;          (do-thing-2)))
+#+end_src
+
+这确实构建出了合适的语法！而且也证明了我们关于 ~Lisp~ 能够“编写能编写代码的代码”这一论断是完全正确的。[fn:18]
+
+然而，这种初步尝试存在两个明显的问题：
+
+- 我们必须给传递给when的每个参数都加上引号。这做起来很麻烦。
+- ~when~ 它实际上并不运行其代码时，它只返回代码应展开的带引号结构。
+
+不过，只需稍作修改，我们的过程就能变成一个“宏”——这是编译器用来展开代码的一种特殊过程。我们需要做的全部操作如下：
+
+#+begin_src scheme
+  (define-macro (when test . body)
+    `(if ,test
+         ,(cons 'begin body)))
+#+end_src
+
+我们只需要把 ~define~ 重命名为 ~define-macro~ 就可以了！现在 ~Scheme~ 就知道应该用它来进行代码展开。
+这让我们能够定义新的语法形式。
+
+~define-macro~ 非常清晰地展示了 ~Lisp~ 和 ~Scheme~ 中的宏的作用：它们对结构进行操作。
+在 ~Common Lisp~ 中，宏就是通过这种方式手动构建列表结构来实现的。不过，这并不是 ~Scheme~ 中编写宏的通用方法。
+~Scheme~ 宏的形式看起来却非常相似：
+
+#+begin_src scheme
+  (define-syntax-rule (when test body ...)
+    (if test
+        (begin body ...)))
+#+end_src
+
+~define-syntax-rule~ 利用模式匹配来实现宏。 ~define-syntax-rule~ 的第一个参数描述用户将输入的模式，
+第二个参数描述将被展开的模板。19我们还可以注意到， ~body ...~ 同时出现在模式和模板中；
+模式中的 ~...~ 省略号表示将从用户输入中捕获多个表达式，而模板中的 ~...~ 则表示重复操作应发生的位置。
+我们可以看到，使用这种机制无需手动对内容进行引用； ~Scheme~ 会巧妙地为我们处理这一点。
+
+最终，语法定义的 ~Scheme~ 版本在底层工作原理上不如 ~define-macro~ 版本直观。
+然而，语法转换系统中存在一个被称为 **hygienic（卫生）** 的问题：即语法形式/宏不得向其展开后的形式主体中引入意外的临时标识符。
+本入门教程不深入探讨这一争议，但 ~Common Lisp~ 和 ~Scheme~ 的宏都存在显著的权衡： ~Scheme~ 更有可能实现真正的“卫生”，
+对于简单的语法形式编写起来更轻松，但对于更复杂的语法形式则难度更大，且其底层工作原理也更不直观。
+因此，尽管你在 ~Scheme~ 中可能永远不会使用 ~define-macro~ 这种方法，但它是理解“代码生成代码”背后理念的有效途径。
+
+既然我们已经知道了如何用 ~Scheme~ 的方式生成新语法，接下来让我们看看能否让生活比以前更便捷。我们回顾一下之前使用的 ~for-each~ ：
+
+#+begin_src scheme
+  REPL> (for-each (lambda (str)
+  		  (display
+  		   (string-append "I just love "
+  				  (string-upcase str)
+  				  "!!!\n")))
+  		'("strawberries" "bananas" "grapes"))
+  ; prints:
+  ;   I just love STRAWBERRIES!!!
+  ;   I just love BANANAS!!!
+  ;   I just love GRAPES!!!
+#+end_src
+
+这样做是可行的，但也未免过于繁琐了。那个 ~lambda~ 完全是多余的细节！一个小小的新语法定义就能让我们把代码整理得更简洁：
+
+#+begin_src scheme
+  (define-syntax-rule (for (item lst) body ...)
+    (for-each (lambda (item)
+  	      body ...)
+  	    lst))
+#+end_src
+
+我们来试试它：
+
+#+begin_src scheme
+  REPL> (for (str '("strawberries" "bananas" "grapes"))
+  	   (display
+  	    (string-append "I just love "
+  			   (string-upcase str)
+  			   "!!!\n")))
+  ; prints:
+  ;   I just love STRAWBERRIES!!!
+  ;   I just love BANANAS!!!
+  ;   I just love GRAPES!!!
+#+end_src
+
+这样就可以了！这样可读性就高多了。[fn:20]
+
+我们不必就此打住。 ~Spritely Goblins~ 中的 ~methods~ 特性就是宏的一个示例。以下是其简化版本：
+
+#+begin_src scheme
+  (define-syntax-rule (methods ((method-id method-args ...)
+  			      body ...) ...)
+    (lambda (method . args)
+      (letrec ((method-id
+  	      (lambda (method-args ...)
+  		body ...)) ...)
+        (cond
+         ((eq? method (quote method-id))
+  	(apply method-id args)) ...
+  	(else
+  	 (error "No such method:" method))))))
+#+end_src
+
+我们在这里既能同时看到 ~Scheme~ 风格模式匹配示例的表现力，也能发现，借助多层省略号（ ~...~ ），
+要弄清楚代码展开器是如何解析内容的，会有一定难度。
+
+但我们现在不必为此担心，我们来展示一个使用示例：
+
+#+begin_src scheme
+  REPL> (define (make-enemy name hp)
+  	(methods
+  	 ((get-name)
+  	  name)
+  	 ((damage-me weapon hp-lost)
+  	  (cond
+  	   ((dead?)
+  	    (format #t "Poor ~a is already dead!\n" name))
+  	   (else
+  	    (set! hp (- hp hp-lost))
+  	    (format #t "You attack ~a, doing ~a damage!\n"
+  		    name hp-lost))))
+  	 ((dead?)
+  	  (<= hp 0))))
+  REPL> (define hobgob
+  	(make-enemy "Hobgoblin" 25))
+  REPL> (hobgob 'get-name)
+  ; => "Hobgoblin"
+  REPL> (hobgob 'dead?)
+  ; => #f
+  REPL> (hobgob 'damage-me "club" 10)
+  ; prints: You attack Hobgoblin, doing 10 damage!
+  REPL> (hobgob 'damage-me "sword" 20)
+  ; prints: You attack Hobgoblin, doing 20 damage!
+  REPL> (hobgob 'damage-me "pickle" 2)
+  ; prints: Poor Hobgoblin is already dead!
+  REPL> (hobgob 'dead?)
+  ; => #t
+#+end_src
+
+我们可以更进一步。我们可以扩展 ~Scheme~ 以包含逻辑编程，可以添加模式匹配等等。事实上，在下一小节中，
+我们将使用 ~Guile~ 标准库中包含的一个模式匹配系统。
+
+由于 ~Lisp/Scheme~ 具有语法可扩展性，高级编程语言特性可作为库来实现，而非作为完全独立的子语言。
+多个问题领域可以整合到一个系统中。正因如此，我们称Lisp语言家族中的语言支持可组合的领域特定语言。
+
+这也让人感到解脱。在其他编程语言中，用户只能寄希望于编程语言实现者能在下一次官方语言版本中推出所需功能，
+而这些功能对于会用 ~Lisp/Scheme~ 的开发者来说，只需寥寥数行简单的代码就能实现。
+
+这才是真正的强大功能。但这还不止于此。在下一节中，我们将解锁 Scheme 语言本身，让我们能够在代码量少得惊人的情况下，配置并实验其底层机制。
+
+** ~Scheme~ 中的 ~Scheme~ (~Scheme~ in ~Scheme~)
+
+这是一个用 ~Scheme~ 编写的可运行 ~Scheme~ 实现：
+
+#+begin_src scheme
+  (use-modules (ice-9 match))
+
+  (define (env-lookup env name)
+    (match (assoc name env)
+      ((ₖey . val)
+       val)
+      (_
+       (error "Variable unbound:" name))))
+
+  (define (extend-env env names vals)
+    (if (eq? names '())
+        env
+        (cons (cons (car names) (car vals))
+  	    (extend-env env (cdr names) (cdr vals)))))
+
+  (define (evaluate expr env)
+    (match expr
+      ;; Support builtin types
+      ((or #t #f (? number?))
+       expr)
+      ;; Quoting
+      (('quote quoted-expr)
+       quoted-expr)
+      ;; Variable lookup
+      ((? symbol? name)
+       (env-lookup env name))
+      ;; Conditionals
+      (('if test consequent alternate)
+       (if (evaluate test env)
+  	 (evaluate consequent env)
+  	 (evaluate alternate env)))
+      ;; Lambdas (Procedures)
+      (('lambda (args ...) body)
+       (lambda (. vals)
+         (evaluate body (extend-env env args vals))))
+      ;; Procedure Invocation (Application)
+      ((proc-expr arg-exprs ...)
+       (apply (evaluate proc-expr env)
+  	    (map (lambda (arg-expr)
+  		   (evaluate arg-expr env))
+  		 arg-exprs)))))
+#+end_src
+
+去掉注释、空行以及开头的模式匹配导入（虽非必需但很方便）后，这段代码仅有 ~30~ 行。这个求值器虽极简，却功能完备，
+足以计算我们能想到的任何内容。（你甚至可以在此基础上再编写一个类似的 ~Scheme~ 求值器！）[fn:21]
+
+我们的求值器接受两个参数，一个是 ~Scheme~ 表达式 ~expr~ 和一个环境 ~env~ 。 ~Scheme~ 这种类 ~Lisp~ 的结构在此处大有裨益，
+因为我们已经知道可以轻松地对整段代码进行引用。（事实上，这正是我们要做的事。）第二个参数 ~env~ 是一个关联表，
+用于将符号映射到其对应的名称和相关过程。
+
+眼见为实。我们来做一些简单的运算，向默认环境中传入一些能执行数学运算的过程：
+
+#+begin_src scheme
+  (define math-env
+    `((+ . ,+)
+      (- . ,-)
+      (* . ,*)
+      (/ . ,/)))
+#+end_src
+
+我们可以看到，我们编写的第一个“代入法”示例在这个环境下运行得非常好：
+
+#+begin_src scheme
+  REPL> (evaluate '(* (- 8 (/ 30 5)) 21)
+  		math-env)
+  ; => 42
+#+end_src
+
+没想到吧，这和我们在自己的程序里得到的答案一样！
+
+我们也可以创建一个 ~lambda~ 函数并调用它。我们来做一个能对数字求平方的函数：
+
+#+begin_src scheme
+  REPL> (evaluate '((lambda (x)
+  		    (* x x))
+  		  4)
+  		math-env)
+  ; => 16
+#+end_src
+
+很好，完美运行。
+
+我们来做一些更进阶的操作。仅提供 ~+~ 和 ~=~ 两个运算符，我们就能计算出斐波那契数列：
+
+#+begin_src scheme
+  REPL> (define fib-program
+  	'((lambda (prog arg)   ; boot
+  	    (prog prog arg))
+  	  (lambda (fib n)      ; main program
+  	    (if (= n 0)
+  		0
+  		(if (= n 1)
+  		    1
+  		    (+ (fib fib (+ n -1))
+  		       (fib fib (+ n -2))))))
+  	  10))                 ; argument
+  REPL> (define fib-env
+  	`((+ . ,+)
+  	  (= . ,=)))
+  REPL> (evaluate fib-program fib-env)
+  ; => 55
+#+end_src
+
+这看起来像魔法。但它真的有效！评估器确实在执行底层计算，它只用到了加法（对正数和负数都适用）以及我们提供的数值相等性检查程序。
+
+主程序需要能够调用自身，因此第一个过程（标记为 ~boot~ ）接收一个程序和一个参数，并用程序自身及该参数调用此过程。[fn:22]
+第二个过程（标记为 ~main program~ ）将自身作为参数 ~fib~ （由启动过程提供）以及参数 ~n~ （同样由启动过程提供）……这样程序就能运行了！
+我们的求值器会递归构建斐波那契数列。
+
+我们的解释器也很容易理解。让我们逐部分对其进行拆解。
+
+#+begin_src scheme
+  (define (env-lookup env name)
+    (match (assoc name env)
+      ((ₖey . val)
+       val)
+      (_
+       (error "Variable unbound:" name))))
+#+end_src
+
+这很简单。我们将环境定义为关联列表，因此 ~env-lookup~ 所做的只是在列表中查找匹配的名称。较新添加的项会优先被找到，
+这意味着在更内层作用域中定义的同名变量会遮蔽外层父作用域中的同名变量。这一点可以通过使用方法看出来：
+
+#+begin_src scheme
+  REPL> (env-lookup '((foo . newer-foo)
+  		    (bar . bar)
+  		    (foo . older-foo))
+  		  'foo)
+  ; => 'newer-foo
+#+end_src
+
+下一个是一个工具函数：
+
+#+begin_src scheme
+  (define (extend-env env names vals)
+    (if (eq? names '())
+        env
+        (cons (cons (car names) (car vals))
+  	    (extend-env env (cdr names) (cdr vals)))))
+#+end_src
+
+~extend-env~ 接受一个环境、一个名称列表以及一个并行的值列表。这是一个我们稍后将在过程定义中使用的便捷操作。
+再一次，通过使用方式很容易理解：
+
+#+begin_src scheme
+  REPL> (extend-env '((foo . foo-val))
+  		  '(bar quux)
+  		  '(bar-val quux-val))
+  ; => ((bar . bar-val)
+  ;     (quux . quux-val)
+  ;     (foo . foo-val))
+#+end_src
+
+现在我们来研究求值器。 ~evaluate~ 的框架如下所示：
+
+#+begin_src scheme
+  (define (evaluate expr env)
+    (match expr
+      (<MATCH-PATTERN>
+       <MATCH-BODY> ...) ...))
+#+end_src
+
+接受两个参数：
+
+- ~expr~ ：要求值的表达式
+- ~env~ ：我们将在其中计算表达式的环境
+
+对于 ~evaluate~ 的主体，我们会根据与 ~expr~ 匹配的模式来调度行为。我们使用的是来自 ~Guile~ 的模式匹配语法的 ~match~ （该语法来自我们在顶部导入的模块）。
+简而言之，如果 ~<MATCH-PATTERN>~ 匹配成功，我们将停止查找其他匹配项，并执行 ~<MATCH-BODY>~ （可能会使用从 ~<MATCH-PATTERN>~ 中绑定的变量）。
+
+那么，现在我们要做的就是梳理我们支持的每一种模式。第一种很简单：
+
+#+begin_src scheme
+  ;; 支持内置类型
+  ((or #t #f (? number?))
+   expr)
+#+end_src
+
+~or~ 表示我们可以匹配其包含的任意一个模式。前两个字面上是 ~Scheme~ 语言本身的真和假值。以 ~?~ 符号开头的括号表示我们将尝试匹配一个谓词，
+在本例中是 ~number?~ 。只要其中任意一个匹配成功，我们就直接返回正在匹配的同一个 ~expr~ ——直接从底层的 ~Scheme~ 实现中借用布尔值和数字。
+
+换句话说，上述功能实现了：
+
+#+begin_src scheme
+  REPL> (evaluate #t '())
+  ; => #t
+  REPL> (evaluate #f '())
+  ; => #f
+  REPL> (evaluate 33 '())
+  ; => 33
+  REPL> (evaluate -2/3 '())
+  ; => -2/3
+#+end_src
+
+这很简单！下一个也很简单：
+
+#+begin_src scheme
+  ;; 引用
+  (('quote quoted-expr)
+   quoted-expr)
+#+end_src
+
+记住， ~'foo~ 只是 ~(quote foo)~ 的简写形式，同理 ~'(1 2 3)~ 是 ~(quote (1 2 3))~ 的简写。在这种模式中，
+我们会寻找所有以 ~'quote~ 符号开头、且第二个元素为要引用的表达式的列表。
+
+换句话说，上述功能可实现以下效果：
+
+#+begin_src scheme
+  REPL> (evaluate ''foo '())
+  ; => foo
+  REPL> (evaluate ''(1 2 3) '())
+  ; => (1 2 3)
+  REPL> (evaluate (quote (quote (1 2 3))) '())
+  ; => (1 2 3)
+#+end_src
+
+最后两个是相同的。请注意我们进行了两次引号标注：一次用于给要运行的整个程序加上引号，另一次在带引号的程序内部表示我们需要对一个表达式进行引号标注。
+
+到目前为止一切顺利。下一个例子仍然相当简单：
+
+#+begin_src scheme
+  ;; 变量查找
+  ((? symbol? name)
+    (env-lookup env name))
+#+end_src
+
+~(? symbol? name)~ 部分会将 ~name~ 绑定到匹配的组件上。（在这种情况下， ~name~ 会被绑定到与 ~expr~ 匹配的值相同，但这会稍微提高可读性。）
+
+也就是说，上述功能实现了以下能力：
+
+#+begin_src scheme
+  REPL> (evaluate 'x '((x . 33)))
+  ; => 33
+#+end_src
+
+不过，它也能支持我们通过 lambda 应用定义的变量查找：
+
+#+begin_src scheme
+  REPL> (evaluate '((lambda (x) x) 33) '())
+  ; => 33
+#+end_src
+
+当然，我们还没有接触到lambda！但我们已经快到了。
+
+下一个是条件句，事实证明这也相当简单：
+
+#+begin_src scheme
+  ;; 条件语句
+  (('if test consequent alternate)
+   (if (evaluate test env)
+       (evaluate consequent env)
+       (evaluate alternate env)))
+#+end_src
+
+换句话说，以符号 'if 开头的列表会被匹配，'if 之后的三个子表达式会在匹配体中分别绑定到变量 test、consequent 和 alternate。我们使用底层 Scheme 的 if 表达式，首先在当前环境 env 中对 test 进行求值（注意这是递归操作！），然后借助宿主 Scheme 的 if 来决定是在 env 中对 consequent 求值，还是对 alternate 求值，这一过程同样会通过 evaluate 递归完成。
+
+好的，现在该构建过程了。这个过程稍微复杂一点，但最终也不算太复杂：
+
+
+#+begin_src scheme
+  ;; 匿名函数(过程)
+  (('lambda (args ...) body)
+   (lambda (. vals)
+     (evaluate body (extend-env env args vals))))
+#+end_src
+
+这里的模式寻找一个以 'lambda 开头的列表，第二个列表元素为参数集合，主体则被捕获为 body。随后我们返回一个准备好接收相同数量参数进行求值的过程。23 我们返回的过程的内部主体，会针对我们要匹配的 lambda 的 body 表达式递归调用 evaluate，但会使用新扩展的环境，将 args 中的名称与过程调用中的 vals 绑定在一起。[fn:24]
+
+换句话说，上述功能实现了：
+
+#+begin_src scheme
+  REPL> ((evaluate '(lambda (x y) x) '())
+         'first 'second)
+  ; => first
+  REPL> ((evaluate '(lambda (x y) y) '())
+         'first 'second)
+  ; => second
+#+end_src
+
+就只剩最后一个部分了……函数调用！
+
+
+#+begin_src scheme
+  ;; 过程调用(应用程序)
+  ((proc-expr arg-exprs ...)
+   (apply (evaluate proc-expr env)
+  	(map (lambda (arg-expr)
+  	       (evaluate arg-expr env))
+  	     arg-exprs)))
+#+end_src
+
+这是通用过程应用的关键部分！此时，该模式会匹配任何包含一个或多个元素的列表，并判定这必然意味着将过程应用于参数。我们在当前参数范围内计算proc-expr</b>，它代表待求值的过程，并结合当前环境env递归调用evaluate</b>。我们还会收集传递给该过程的所有 ~arg-expr~ 参数表达式，方法是结合当前环境 ~env~ 对每个参数表达式递归调用 ~evaluate~ [fn:25]。
+
+换句话说，上述功能实现了：
+
+#+begin_src scheme
+  REPL> (evaluate '(* (- 8 (/ 30 5)) 21)
+  		math-env)
+  ; => 42
+#+end_src
+
+而将所有部分结合起来，我们拥有的算力不仅足以计算斐波那契数列，还能解决任何可计算的问题！
+
+公平地说，这确实借鉴了 Scheme 底层的部分功能，但程度远没有看起来那么深……当然也远低于许多在其他语言之上实现的语言（比如，肯定远少于 Clojure 从 Java 中借鉴的部分，也几乎比任何主流语言从 C 标准库中借鉴的都要少）。26 而且它也没有完整实现任何 Scheme 标准。但只需稍作额外工作，我们就能实现这一点，这对于演示来说已经足够了。不过我们也可以通过修改代码求值的初始环境，来决定赋予这门语言多大的功能。
+
+它也是一种具备安全能力的语言！除了陷入无限循环并消耗过多内存或CPU资源外，这种语言不会造成其他特别危险的后果。不过，我们可以决定赋予它多大的权限。如果我们愿意，可以为它提供包含可变单元的运行环境，也可以提供能访问文件系统的环境。选择权掌握在我们手中。
+
+只需稍作调整，我们的评估器就能以各种奇妙的方式运行。我们可以添加新的语法。我们还能通过添加新语法来引入新语法（宏功能）！我们可以改变求值顺序，添加静态类型分析，还能实现诸多其他功能。
+
+我们保证你将通过本教程学会 Scheme。如果你已经学到这里，你收获的远不止于此：你不再只是 Scheme 的使用者，而是 Scheme 的构建者。这份力量属于你！[fn:27]
 
 ** 嵌入 Guile 环境(Embed Guile Interpreter)
 
