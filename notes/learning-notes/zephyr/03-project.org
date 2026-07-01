@@ -6,5 +6,66 @@
 
 要使用 ~zephyr~ 开发你的项目，适配你的主板，那么了解 ~zephyr~ 的结构，以及了解如何配置它是必不可少的。
 
-** 
+** 项目结构
+
+一般，一个典型的基于 ~zephyr~ 的结构如下：
+
+#+begin_example
+my_zephyr_app/
+├── CMakeLists.txt          # CMake 构建配置文件
+├── prj.conf                # 项目配置文件
+├── src/                    # 源代码目录
+│   ├── main.c              # 主程序入口
+│   └── ...                 # 其他源文件
+├── boards/                 # 板级配置目录（可选）
+│   └── nrf52840dk_nrf52840.overlay  # 设备树 Overlay
+├── include/                # 头文件目录（可选）
+│   └── ...
+├── lib/                    # 自定义库目录（可选）
+│   └── ...
+└── README.md               # 项目说明文档
+#+end_example
+
+~zephyr~ 操作系统源码目录结构如下：
+
+#+begin_example
+zephyr/
+├── arch/                   # 架构相关代码（ARM、x86、RISC-V 等）
+├── boards/                 # 板级支持包（BSP）
+├── cmake/                  # CMake 构建脚本
+├── doc/                    # 官方文档
+├── drivers/                # 设备驱动程序
+│   ├── gpio/
+│   ├── i2c/
+│   ├── spi/
+│   └── ...
+├── dts/                    # 设备树源文件和绑定
+│   ├── bindings/           # 设备树绑定定义
+│   └── ...
+├── include/                # 公共头文件
+│   ├── zephyr/
+│   └── ...
+├── kernel/                 # 内核核心代码
+├── lib/                    # 通用库
+├── modules/                # 外部模块
+├── samples/                # 示例程序
+├── scripts/                # 构建和工具脚本
+├── subsys/                 # 子系统（日志、Shell、文件系统等）
+│   ├── logging/
+│   ├── shell/
+│   ├── fs/
+│   └── ...
+├── tests/                  # 测试用例
+└── CMakeLists.txt          # 顶层 CMake 文件
+#+end_example
+
+#+begin_note
+以下是核心目录：
+- arch/: 包含不同 CPU 架构的底层实现（启动代码、上下文切换、中断处理）
+- boards/: 包含各种开发板的配置文件和设备树定义
+- drivers/: 包含各种外设的驱动程序实现
+- kernel/: Zephyr 内核的核心实现（调度器、线程管理、同步机制）
+- subsys/: 各种子系统的实现（日志、Shell、网络、蓝牙等）
+- samples/: 官方提供的示例程序，是学习的好资源
+#+end_note
 

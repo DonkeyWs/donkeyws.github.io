@@ -1,0 +1,494 @@
+#+title: Scheme 语言入门 (A Scheme Primer)
+#+date: 2026/07/01
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** 楔子(Prologue)
+
+很早就听过 ~Scheme~ 的大名，如雷贯耳，特别是编译器方向，更是人所必知，
+不过我要入门 ~Scheme~ 的主要原因是要通过 ~Guile~ 来扩展 ~lilypond~ 生成简谱乐谱。
+
+** 引言(Introduction)
+
+在整个计算机编程领域中，几乎没有几种语言能像 ~Scheme~ 这样兼具简洁、纯粹、全面、强大与可扩展性。 ~Scheme~ 标准化 ~R5RS~ 版本的引言1就很好地阐释了其设计理念：
+
+#+begin_example
+Programming languages should be designed not by piling feature on top of feature, but by removing the weaknesses and restrictions that make additional features appear necessary.
+
+程序设计语言的设计不应是在功能上层层叠加，而应是剔除那些让额外功能显得必不可少的缺陷与限制。
+#+end_example
+
+这种极简主义意味着 ~Scheme~ 的基础语法很容易学习。 ~R5RS~ 介绍部分接着写道：
+
+#+begin_example
+Scheme demonstrates that a very small number of rules for forming expressions, with no restrictions on how they are composed, suffice to form a practical and efficient programming language that is flexible enough to support most of the major programming paradigms in use today.
+
+该方案表明，仅需极少量的表达式构成规则，且对表达式的组合方式不加任何限制，就足以构建出一种实用且高效的编程语言。这种语言的灵活性足以支持目前主流的绝大多数编程范式。
+#+end_example
+
+~Scheme~ 就能应对你所能提出的任何语言范式。它的极简基础与对可扩展性的强力支持，使其深受学术语言研究领域的青睐，也常被用作学术语言研究的基础。
+
+但在某一领域拥有良好口碑，在另一领域却可能沦为短板。 ~Scheme~ 作为一门学术语言的属性，也导致它常被认为对“普通”程序员来说过于晦涩，难以掌握和使用。
+
+实际上， ~Scheme~ 并没有什么难的，任何程序员都能在极短时间内学会它（甚至可能尤其是儿童和非程序员）。
+
+在 ~Spritely! 研究所，我们决定将核心技术 ~Spritely~ 哥布林基于 ~Scheme~ 语言开发。
+我们发现，尽管有大量关于 ~Scheme~ 的深度研究资料，以及一些简短易懂的 ~Scheme~ 入门教程，
+但仍缺乏一种适中难度的入门介绍。以下内容介于对 ~Scheme~ 的简要概述与全面讲解之间。
+只需粗略阅读本文，你就能上手使用 ~Scheme~ 开展开发；而对编程充满热情的读者，还能从中挖掘到更深层次的知识（尤其是通过阅读脚注部分）。
+
+我们从不对编程经验做任何假设，但拥有这样的经验将帮助读者快速掌握部分早期章节。
+本教程的内容会随着深入变得越来越高阶。我们将以一个真正的重头戏收尾：如何用 ~Scheme~ 编写一个 ~Scheme~ 解释器，
+且仅需 ~30~ 行单行代码即可完成。
+
+** 环境搭建(Setting up)
+
+你需要选择一个 ~Scheme~ 实现来进行学习和使用，同时还需要选择一款编辑器。这两者都有很多选择，
+但我们会将建议范围缩小到两个方向：
+
+- ~Guile Scheme~ + ~GNU Emacs~ + ~Geiser~ ：本教程便是基于这套工具编写而成，它功能强大（同时也为使用 ~Guix~ 铺平了道路， ~Guix~ 是当下最具特色的 ~Scheme~ 项目之一）。
+  不过，这条学习路线的上手门槛相当高。
+- [[https://racket-lang.org/][Racket]] ：自带一个名为 ~DrRacket~ 的集成开发环境，这是入门的便捷途径。
+
+#+begin_note
+笔者这里使用的是方案一，也就是基于 ~Emacs~ 的组合，配置起来并不复杂，具体可以参考 [[https://pkold.com/docs/guile/02-install/][Guile 安装与环境搭建]]。
+#+end_note
+
+一些代码示例前会出现 ~REPL>~ 。 ~REPL~ 是“读取-求值-输出-循环”（Read Eval Print Loop）的缩写，此处指用于输入表达式进行实验的交互式 ~Scheme~ 提示符。
+
+** 你好， ~Scheme~ ！(Hello, ~Scheme~!)
+
+这是用 ~Scheme~ 编写的经典“你好，世界”程序：
+
+#+begin_src scheme
+  (display "Hello world!\n")
+#+end_src
+
+这段代码会在屏幕上输出“Hello world!”。（"\n" 表示一个“换行符”，就像你在文字处理软件中输入一些文本后按下回车键一样。）
+
+如果你熟悉其他编程语言，这可能会让你感到既熟悉又陌生。在大多数其他编程语言中，它的写法大致如下（比如 ~Python~ ）：
+
+#+begin_src python
+  display("Hello world!\n")
+#+end_src
+
+从这个意义上来说，在 ~Scheme~ （以及其他类似的 ~Lisp~ 语言）中调用函数与其他语言并无太大区别，只是函数名要放在括号内部。
+
+** 基本类型，几个小函数(Basic types, a few small functions)
+
+与某些其他语言不同，像 ~+~ 和 ~-~ 这样的数学表达式是前缀函数，与其他函数一样，因此它们放在前面：
+
+#+begin_src scheme
+  (+ 1 2)         ; => 3
+  (/ 10 2)        ; => 5
+  (/ 2 3)         ; => 2/3
+#+end_src
+
+这些大多都能接受多个参数：
+
+#+begin_src scheme
+  (+ 1 8 10)   ; 等价于中缀表示法中的“1 + 8 + 10”
+#+end_src
+
+过程也可以嵌套，我们可以使用“替换法”来观察它们的化简过程：
+
+#+begin_src scheme
+  (* (- 8 (/ 30 5)) 21)   ; 起始表达式
+  (* (- 8 6) 21)          ; 简化：(/ 30 5) => 6
+  (* 2 21)                ; 简化：(- 8 6) => 2
+  42                      ; 简化：(* 2 21) => 42
+#+end_src
+
+支持多种类型。以下是一些数学类型示例：
+
+#+begin_src scheme
+  42          ; 整数
+  98.6        ; 浮点数
+  2/3         ; 分数，或“有理数”
+  -42         ; 这些类型也都可以为负数
+#+end_src
+
+由于 ~Scheme~ 既支持整数和分数这类“精确”数字，又对数字大小没有任何限制，
+因此它非常适合用于高精度的科学和数学计算。浮点表示被视为“不精确”，它会为了速度而牺牲精度。
+
+这里还有一些其他类型：
+
+#+begin_src scheme
+  #t                             ; 表示“真”的布尔值
+  #f                             ; 表示“假”的布尔值
+  "Pangalactic Gargleblaster"    ; 字符串（文本）
+  'foo                           ; 带引号的符号
+  '(1 2 3)                       ; 带引号的列表（此处为数字列表）
+  (lambda (x) (* x 2))                ; 过程（后续会详细说明）
+  '(lambda (x) (* x 2))               ; 包含列表、符号和数字的列表
+#+end_src
+
+如果你来自非 ~Lisp~ 编程语言（少数例外除外），符号可能是最奇怪的类型。虽然符号看起来有点像字符串，
+但它们代表的是更具程序性的东西。（在 ~Goblins~ 的 ~methods~ 语法中，我们使用符号来表示方法名。）
+
+引号符号 ~'~ 会阻止对其后的符号或表达式进行求值。如果一个列表本身被引用，就像上面被引用的 ~lambda~ 表达式那样，
+其内部的符号也不会被求值。
+
+我们会花一些时间在列表与 “cons” 中讨论列表。列表与符号的结合在包括 ~Scheme~ 在内的许多 ~Lisp~ 语言中占据着非常核心的地位，
+因为它们是 ~Lisp~ 可扩展性的核心：即能够编写代码的代码。我们将在论 ~Scheme~ （以及一般意义上的 ~Lisp~ ）的可扩展性中看到如何利用这一强大特性。
+
+** 变量与过程(Variables and procedures)
+
+我们可以使用 ~define~ 为变量赋值：
+
+#+begin_src scheme
+  REPL> (define name "Jane")
+  REPL> (string-append "Hello " name "!")
+  ; => "Hello Jane!"
+  REPL> (define name "Jane")
+  REPL> (string-append "Hello " name "!")
+  ; => "Hello Jane!
+#+end_src
+
+但是，如果 ~define~ 后面的内容被括号包裹， ~Scheme~ 会将其解释为一个过程定义：
+
+#+begin_src scheme
+  (define (greet name)
+    (string-append "Hello " name "!"))
+#+end_src
+
+既然我们已经给这个过程命名了，现在就可以调用它了：
+
+#+begin_src scheme
+  REPL> (greet "Samantha")
+  ; => "Hello Samantha!"
+#+end_src
+
+请注意， ~Scheme~ 具有隐式返回特性。作为过程中的最后一个表达式， ~string-append~ 的结果会自动返回给其调用者。
+
+~define~ 的第二种语法实际上只是语法糖。 ~greet~ 的这两种定义完全相同：
+
+#+begin_src scheme
+  (define (greet name)
+    (string-append "Hello " name "!"))
+
+  (define greet
+    (lambda (name)
+      (string-append "Hello " name "!")))
+#+end_src
+
+~lambda~ 是“匿名过程”（即未提供名称）的名称。虽然我们已将其命名为 ~greet~ ，但该过程在没有这个名称的情况下也可以使用：
+
+#+begin_src scheme
+  REPL> ((lambda (name)
+  	 (string-append "Hello " name "!"))
+         "Horace")
+  ; => "Hello Horace!"
+#+end_src
+
+除了 ~define~ 之外，还有另一种命名事物的方式，即 ~let~ ，它允许出现一系列绑定变量，然后是一个在这些绑定下求值的主体。
+~let~ 的形式如下：
+
+#+begin_src scheme
+  (let ((<VARIABLE-NAME> <VALUE-EXPRESSION>) ...)
+    <BODY> ...)
+#+end_src
+
+（上面示例中的 ~...~ 表示其前面的表达式可以重复多次。）
+
+下面是 ~let~ 的一个使用示例：
+
+#+begin_src scheme
+  REPL> (let ((name "Horace"))
+  	(string-append "Hello " name "!"))
+  ; => "Hello Horace!"
+#+end_src
+
+聪明的读者可能会注意到，这与之前的示例看起来非常相似，实际上， ~let~ 是一个 ~lambda~ 表达式的语法糖，
+该表达式会立即传入参数并执行。之前的两个代码示例是完全等价的：
+
+#+begin_src scheme
+  REPL> (let ((name "Horace"))
+  	(string-append "Hello " name "!"))
+  ; => "Hello Horace!"
+  REPL> ((lambda (name)
+  	 (string-append "Hello " name "!"))
+         "Horace")
+  ; => "Hello Horace!"
+#+end_src
+
+~let*~ 类似于 ~let~ ，但允许绑定在表达式中引用先前的绑定：[fn:3]
+
+#+begin_src scheme
+  REPL> (let* ((name "Horace")
+  	     (greeting
+  	      (string-append "Hello " name "!\n")))
+  	(display greeting))   ; print greeting to screen
+  ; prints: Hello Horace!
+#+end_src
+
+可以使用 ~apply~ 手动将参数列表应用到一个过程。例如，要对一个数字列表求和，我们可以结合使用 ~apply~ 和 ~+~ ：
+
+#+begin_src scheme
+  REPL> (apply + '(1 2 5))
+  ; => 8
+#+end_src
+
+与此相反，可以使用“点表示法”捕获可变长度的参数集[fn:4]。这里我们来演示这一用法，
+同时展示 ~Guile~ 的 ~format~ 函数（当以 ~#f~ 作为第一个参数调用时，会返回一个格式化的字符串作为值；而以 ~#t~ 作为第一个参数调用时，则会打印到屏幕上，后者正是我们此处所需的功能）：
+
+#+begin_src scheme
+  REPL> (define (chatty-add chatty-name . nums)
+  	(format #t "<~a> If you add those together you get ~a!\n"
+  		chatty-name (apply + nums)))
+  REPL> (chatty-add "Chester" 2 4 8 6)
+  ; Prints:
+  ;   <Chester> If you add those together you get 20!""))
+#+end_src
+
+虽然这在 ~Scheme~ 中并非标准功能，但许多 ~Scheme~ 实现也支持可选参数和关键字参数。 ~Guile~ 将这种抽象实现为 ~define*~ ：
+
+#+begin_src scheme
+  REPL> (define* (shopkeeper thing-to-buy
+  			   #:optional (how-many 1)
+  			   (cost 20)
+  			   #:key (shopkeeper "Sammy")
+  			   (store "Plentiful Great Produce"))
+  	(format #t "You walk into ~a, grab something from the shelves,\n"
+  		store)
+  	(display "and walk up to the counter.\n\n")
+  	(format #t "~a looks at you and says, "
+  		shopkeeper)
+  	(format #t "'~a ~a, eh? That'll be ~a coins!'\n"
+  		how-many thing-to-buy
+  		(* cost how-many)))
+  REPL> (shopkeeper "apples")
+  ; Prints:
+  ;   You walk into Plentiful Great Produce, grab something from the shelves,
+  ;   and walk up to the counter.
+  ;
+  ;   Sammy looks at you and says, '1 apples, eh? That'll be 20 coins!'
+  REPL> (shopkeeper "bananas" 10 28)
+  ; Prints:
+  ;   You walk into Plentiful Great Produce, grab something from the shelves,
+  ;   and walk up to the counter.
+  ;
+  ;   Sammy looks at you and says, '10 bananas, eh? That'll be 280 coins!'
+  REPL> (shopkeeper "screws" 3 2
+  		  #:shopkeeper "Horace"
+  		  #:store "Horace's Hardware")
+  ; Prints:
+  ;   You walk into Horace's Hardware, grab something from the shelves,
+  ;   and walk up to the counter.
+  ;
+  ;   Horace looks at you and says, '3 screws, eh? That'll be 6 coins!'"")))
+#+end_src
+
+最后， ~Scheme~ 的过程还能实现另一个有趣的功能：它们可以使用 ~values~ 返回多个值！举个特别简单的例子，
+假设我们想对比同时对两个数做加法和乘法的结果：
+
+#+begin_src scheme
+  REPL> (define (add-and-multiply x y)
+  	        (values (+ x y)
+  			                (* x y)))
+  REPL> (add-and-multiply 2 8)
+  ; => 10
+  ; => 16
+  REPL> (define-values (added multiplied)
+  	        (add-and-multiply 3 10))
+  REPL> added
+  ; => 13
+  REPL> multiplied
+  ; => 30
+#+end_src
+
+如你所见，我们可以使用 ~define-values~ 来捕获上述值，如上所示。
+（也可以使用 ~let-values~ 和 ~call-with-values~ ，但本节的新语法已经足够多了！）
+
+** 条件语句与谓词(Conditionals and predicates)
+
+有时我们想要测试某件事是否为真。例如，我们可以通过使用 ~string?~ [fn:5]来判断一个对象是否为字符串：
+
+#+begin_src scheme
+  EPL> (string? "apple")
+  ; => #t
+  REPL> (string? 128)
+  ; => #f
+  REPL> (string? 'apple)
+  ; => #f
+#+end_src
+
+（请记住 ~#t~ 代表“真”， ~#f~ 代表“假”。）
+
+我们可以将这个与形式如下的 ~if~ 结合使用：
+
+#+begin_src scheme
+  (if <TEST>
+      <CONSEQUENT>
+      [<ALTERNATE>])
+#+end_src
+
+** 嵌入 Guile 环境(Embed Guile Interpreter)
+
+实际上 ~Guile~ 非常适合作为大系统的嵌入式脚本，这个章节介绍一下如何通过 ~Guile~ 来扩展你的 ~C++~ 程序。
+
+1. 安装必要的库：
+
+   #+begin_src bash
+     # 安装依赖
+     sudo apt install pkg-config guile-3.0-dev -y
+
+     # 确认下guile-3.0的库可以找到
+     pkg-config --modversion guile-3.0
+   #+end_src
+
+2. 创建对应的 ~C++~ 主程序：
+
+   #+begin_src cpp
+     #include <sys/wait.h>
+
+     #include <libguile.h>
+
+     #include <cerrno>
+     #include <cstdio>
+     #include <cstdlib>
+     #include <cstring>
+
+     /*
+      * (subprocess "shell command string")
+      *  返回一个 alist:
+      *    ((output . "stdout 内容")
+      *     (status . 退出码))
+      */
+     static SCM SubprocessImpl(SCM command_scm) {
+         /* 参数类型检查 */
+         SCM_ASSERT(scm_is_string(command_scm), command_scm, SCM_ARG1, "subprocess");
+
+         char *command = scm_to_utf8_string(command_scm);
+         if (!command) {
+             scm_misc_error("subprocess", "cannot convert command string", SCM_EOL);
+         }
+
+         FILE *fp = popen(command, "r");
+         if (!fp) {
+             int saved = errno;
+             free(command);
+             SCM args = scm_list_n(scm_from_locale_string(strerror(saved)), SCM_EOL);
+             scm_syserror_msg("subprocess", "popen failed: ~A", args, saved);
+         }
+
+         /* 动态缓冲读取 stdout */
+         size_t cap = 1024;
+         size_t len = 0;
+         char *buf = reinterpret_cast<char *>(malloc(cap));
+         char tmp[4096];
+
+         while (fgets(tmp, sizeof(tmp), fp) != NULL) {
+             size_t n = strlen(tmp);
+             while (len + n + 1 > cap) {
+                 cap *= 2;
+                 char *nb = reinterpret_cast<char *>(realloc(buf, cap));
+                 if (!nb) {
+                     free(buf);
+                     pclose(fp);
+                     free(command);
+                     scm_misc_error("subprocess", "out of memory", SCM_EOL);
+                 }
+                 buf = nb;
+             }
+             memcpy(buf + len, tmp, n);
+             len += n;
+         }
+         buf[len] = '\0';
+
+         int raw = pclose(fp); /* waitpid 风格的 status */
+         int exit_code;
+         if (WIFEXITED(raw)) {
+             exit_code = WEXITSTATUS(raw);
+         } else if (WIFSIGNALED(raw)) {
+             exit_code = 128 + WTERMSIG(raw);
+         } else {
+             exit_code = -1;
+         }
+
+         /* 组装 Scheme 返回值: alist */
+         SCM out_str = scm_from_utf8_string(buf);
+         SCM status_num = scm_from_int(exit_code);
+
+         SCM result = scm_list_2(scm_cons(scm_from_utf8_symbol("output"), out_str),
+                                 scm_cons(scm_from_utf8_symbol("status"), status_num));
+
+         free(buf);
+         free(command);
+         return result;
+     }
+
+     static void GuileMain(void *data, int argc, char **argv) {
+         /* 1 个必选参数，0 个可选，0 个 rest */
+         scm_c_define_gsubr("subprocess", 1, 0, 0,
+                          reinterpret_cast<scm_t_subr>(SubprocessImpl));
+
+         /* 进入 guile 的命令行（REPL / -c / 脚本文件都走这里） */
+         scm_shell(argc, argv);
+     }
+
+     int main(int argc, char **argv) {
+         scm_boot_guile(argc, argv, GuileMain, NULL);
+         return 0;
+     }
+   #+end_src
+
+3. 创建 ~Makefile~ ：
+
+   #+begin_src makefile
+     all: main.cpp
+     	clang++ -O2 -o main main.cpp $(shell pkg-config guile-3.0 --cflags --libs)
+
+     test: main
+     	./main -c '(display (subprocess "echo hello world")) (newline)'
+   #+end_src
+
+4. 这里也可以使用 ~just~ ，创建 ~justfile~ ：
+
+   #+begin_src
+     root := justfile_directory()
+
+     [private]
+     @default:
+       @just --list
+
+     @build:
+       cd {{root}}
+         clang++ -O2 -o main main.cpp $(pkg-config guile-3.0 --cflags --libs)
+
+     @test:
+       cd {{root}}
+         ./main -c '(display (subprocess "echo hello world")) (newline)'
+           ./main demo.scm
+
+     @clean:
+       cd {{root}} && rm -rf main"))
+   #+end_src
+
+5. 创建测试文件 ~demo.scm~ ：
+
+   #+begin_src scheme
+     ;; demo.scm
+     (define result (subprocess "ls -la /etc/hosts"))
+
+     ;; 用 assoc-ref 取字段
+     (define out    (assoc-ref result 'output))
+     (define status (assoc-ref result 'status))
+
+     (format #t "exit code = ~a~%" status)
+     (format #t "stdout:~%~a" out)
+
+     ;; 演示一个失败的命令
+     (define bad (subprocess "ls /no/such/path"))
+     (format #t "bad command status = ~a~%" (assoc-ref bad 'status))
+   #+end_src
+
+6. 编译并测试：
+
+   #+begin_src bash
+     make
+     make test
+
+     # 或者使用just
+     just build
+     just test
+   #+end_src

@@ -112,5 +112,8 @@
 
   # 查看串口输出
   west debug
+
+  # 如果你使用的也是E SP32-C3, 可以查看esp-idf的monitor命令的输出
+  west espressif monitor
 #+end_src
 
