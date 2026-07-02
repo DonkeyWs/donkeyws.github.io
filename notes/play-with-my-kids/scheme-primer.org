@@ -7,6 +7,8 @@
 很早就听过 ~Scheme~ 的大名，如雷贯耳，特别是编译器方向，更是人所必知，
 不过我要入门 ~Scheme~ 的主要原因是要通过 ~Guile~ 来扩展 ~lilypond~ 生成简谱乐谱。
 
+这里是对 **克里斯汀·莱默-韦伯与斯普里特利研究所** 所著的 [[https://files.spritely.institute/papers/scheme-primer.html][A Scheme Primer]] 的一个粗浅翻译，是给自己学习用的。
+
 ** 引言(Introduction)
 
 在整个计算机编程领域中，几乎没有几种语言能像 ~Scheme~ 这样兼具简洁、纯粹、全面、强大与可扩展性。
