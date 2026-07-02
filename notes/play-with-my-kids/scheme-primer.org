@@ -1469,6 +1469,13 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 我们保证你将通过本教程学会 ~Scheme~ 。如果你已经学到这里，你收获的远不止于此：你不再只是 ~Scheme~ 的使用者，
 而是 ~Scheme~ 的构建者。这份力量属于你！[fn:27]
 
+** 参考教程(Reference Guides)
+
+- [[https://klose911.github.io/html/scheme/tutorial/slt.html][Scheme入门教程]]
+- [[https://deathking.github.io/yast-cn/][Yet Another Scheme Tutorial]]
+- [[https://wizardforcel.gitbooks.io/teach-yourself-scheme/content/index.html][Scheme语言简明教程]]
+- [[https://pkold.com/docs/guile/01-introduction/][Guile/Scheme编程教程]]
+
 ** 嵌入 Guile 环境(Embed Guile Interpreter)
 
 实际上 ~Guile~ 非常适合作为大系统的嵌入式脚本，这个章节介绍一下如何通过 ~Guile~ 来扩展你的 ~C++~ 程序。
