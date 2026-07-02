@@ -1,0 +1,52 @@
+#+title: Tauri 环境搭建
+#+date: 2026/07/02
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** 前置条件(Prerequisites)
+
+*** 系统依赖
+
+~Ubuntu~ 上安装如下系统依赖：
+
+#+begin_src bash
+  sudo apt install libwebkit2gtk-4.1-dev \
+       build-essential \
+       curl \
+       wget \
+       file \
+       libxdo-dev \
+       libssl-dev \
+       libayatana-appindicator3-dev \
+       librsvg2-dev
+#+end_src
+
+~macOS~ 上只要安装 ~XCode~ 即可。
+
+*** Rust 安装
+
+按照官方命令：
+
+#+begin_src bash
+  curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+#+end_src
+
+*** NodeJS 安装
+
+*** Android 环境
+
+基础的Android环境配置，这里略过，包括JDK和Android SDK和NDK的安装预配置。
+
+按需安装Rust对应的编译目标，这里只支持aarch64：
+
+#+begin_src bash
+  rustup target add aarch64-linux-android
+#+end_src
+
+*** iOS 环境
+
+#+begin_src bash
+  rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-apple-ios-sim
+#+end_src
+
+** 
+

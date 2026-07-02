@@ -1352,7 +1352,8 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
   ; => (1 2 3)
 #+end_src
 
-最后两个是相同的。请注意我们进行了两次引号标注：一次用于给要运行的整个程序加上引号，另一次在带引号的程序内部表示我们需要对一个表达式进行引号标注。
+最后两个是相同的。请注意我们进行了两次引号标注：一次用于给要运行的整个程序加上引号，
+另一次在带引号的程序内部表示我们需要对一个表达式进行引号标注。
 
 到目前为止一切顺利。下一个例子仍然相当简单：
 
@@ -1362,7 +1363,8 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
     (env-lookup env name))
 #+end_src
 
-~(? symbol? name)~ 部分会将 ~name~ 绑定到匹配的组件上。（在这种情况下， ~name~ 会被绑定到与 ~expr~ 匹配的值相同，但这会稍微提高可读性。）
+~(? symbol? name)~ 部分会将 ~name~ 绑定到匹配的组件上。
+（在这种情况下， ~name~ 会被绑定到与 ~expr~ 匹配的值相同，但这会稍微提高可读性。）
 
 也就是说，上述功能实现了以下能力：
 
@@ -1378,7 +1380,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
   ; => 33
 #+end_src
 
-当然，我们还没有接触到lambda！但我们已经快到了。
+当然，我们还没有接触到 ~lambda~ ！但我们已经快到了。
 
 下一个是条件句，事实证明这也相当简单：
 
@@ -1390,10 +1392,12 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
        (evaluate alternate env)))
 #+end_src
 
-换句话说，以符号 'if 开头的列表会被匹配，'if 之后的三个子表达式会在匹配体中分别绑定到变量 test、consequent 和 alternate。我们使用底层 Scheme 的 if 表达式，首先在当前环境 env 中对 test 进行求值（注意这是递归操作！），然后借助宿主 Scheme 的 if 来决定是在 env 中对 consequent 求值，还是对 alternate 求值，这一过程同样会通过 evaluate 递归完成。
+换句话说，以符号 ~'if~ 开头的列表会被匹配， ~'if~ 之后的三个子表达式会在匹配体中分别绑定到变量 ~test~ 、 ~consequent~ 和 ~alternate~ 。
+我们使用底层 ~Scheme~ 的 ~if~ 表达式，首先在当前环境 ~env~ 中对 ~test~ 进行求值（注意这是递归操作！），
+然后借助宿主 ~Scheme~ 的 ~if~ 来决定是在 ~env~ 中对 ~consequent~ 求值，还是对 ~alternate~ 求值，
+这一过程同样会通过 ~evaluate~ 递归完成。
 
 好的，现在该构建过程了。这个过程稍微复杂一点，但最终也不算太复杂：
-
 
 #+begin_src scheme
   ;; 匿名函数(过程)
@@ -1402,7 +1406,10 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
      (evaluate body (extend-env env args vals))))
 #+end_src
 
-这里的模式寻找一个以 'lambda 开头的列表，第二个列表元素为参数集合，主体则被捕获为 body。随后我们返回一个准备好接收相同数量参数进行求值的过程。23 我们返回的过程的内部主体，会针对我们要匹配的 lambda 的 body 表达式递归调用 evaluate，但会使用新扩展的环境，将 args 中的名称与过程调用中的 vals 绑定在一起。[fn:24]
+这里的模式寻找一个以 ~'lambda~ 开头的列表，第二个列表元素为参数集合，主体则被捕获为 ~body~ 。
+随后我们返回一个准备好接收相同数量参数进行求值的过程。[fn:23]
+我们返回的过程的内部主体，会针对我们要匹配的 ~lambda~ 的 ~body~ 表达式递归调用 ~evaluate~ ，
+但会使用新扩展的环境，将 ~args~ 中的名称与过程调用中的 ~vals~ 绑定在一起。[fn:24]
 
 换句话说，上述功能实现了：
 
@@ -1417,7 +1424,6 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 就只剩最后一个部分了……函数调用！
 
-
 #+begin_src scheme
   ;; 过程调用(应用程序)
   ((proc-expr arg-exprs ...)
@@ -1427,7 +1433,9 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
   	     arg-exprs)))
 #+end_src
 
-这是通用过程应用的关键部分！此时，该模式会匹配任何包含一个或多个元素的列表，并判定这必然意味着将过程应用于参数。我们在当前参数范围内计算proc-expr</b>，它代表待求值的过程，并结合当前环境env递归调用evaluate</b>。我们还会收集传递给该过程的所有 ~arg-expr~ 参数表达式，方法是结合当前环境 ~env~ 对每个参数表达式递归调用 ~evaluate~ [fn:25]。
+这是通用过程应用的关键部分！此时，该模式会匹配任何包含一个或多个元素的列表，并判定这必然意味着将过程应用于参数。
+我们在当前参数范围内计算 ~proc-expr~ ，它代表待求值的过程，并结合当前环境 ~env~ 递归调用 ~evaluate~ 。
+我们还会收集传递给该过程的所有 ~arg-expr~ 参数表达式，方法是结合当前环境 ~env~ 对每个参数表达式递归调用 ~evaluate~ [fn:25]。
 
 换句话说，上述功能实现了：
 
@@ -1439,13 +1447,21 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 而将所有部分结合起来，我们拥有的算力不仅足以计算斐波那契数列，还能解决任何可计算的问题！
 
-公平地说，这确实借鉴了 Scheme 底层的部分功能，但程度远没有看起来那么深……当然也远低于许多在其他语言之上实现的语言（比如，肯定远少于 Clojure 从 Java 中借鉴的部分，也几乎比任何主流语言从 C 标准库中借鉴的都要少）。26 而且它也没有完整实现任何 Scheme 标准。但只需稍作额外工作，我们就能实现这一点，这对于演示来说已经足够了。不过我们也可以通过修改代码求值的初始环境，来决定赋予这门语言多大的功能。
+公平地说，这确实借鉴了 ~Scheme~ 底层的部分功能，但程度远没有看起来那么深……当然也远低于许多在其他语言之上实现的语言
+（比如，肯定远少于 ~Clojure~ 从 ~Java~ 中借鉴的部分，也几乎比任何主流语言从 ~C~ 标准库中借鉴的都要少）。[fn:26]
+而且它也没有完整实现任何 ~Scheme~ 标准。但只需稍作额外工作，我们就能实现这一点，这对于演示来说已经足够了。
+不过我们也可以通过修改代码求值的初始环境，来决定赋予这门语言多大的功能。
 
-它也是一种具备安全能力的语言！除了陷入无限循环并消耗过多内存或CPU资源外，这种语言不会造成其他特别危险的后果。不过，我们可以决定赋予它多大的权限。如果我们愿意，可以为它提供包含可变单元的运行环境，也可以提供能访问文件系统的环境。选择权掌握在我们手中。
+它也是一种具备安全能力的语言！除了陷入无限循环并消耗过多内存或 ~CPU~ 资源外，这种语言不会造成其他特别危险的后果。
+不过，我们可以决定赋予它多大的权限。如果我们愿意，可以为它提供包含可变单元的运行环境，也可以提供能访问文件系统的环境。
+选择权掌握在我们手中。
 
-只需稍作调整，我们的评估器就能以各种奇妙的方式运行。我们可以添加新的语法。我们还能通过添加新语法来引入新语法（宏功能）！我们可以改变求值顺序，添加静态类型分析，还能实现诸多其他功能。
+只需稍作调整，我们的评估器就能以各种奇妙的方式运行。我们可以添加新的语法。
+我们还能通过添加新语法来引入新语法（宏功能）！
+我们可以改变求值顺序，添加静态类型分析，还能实现诸多其他功能。
 
-我们保证你将通过本教程学会 Scheme。如果你已经学到这里，你收获的远不止于此：你不再只是 Scheme 的使用者，而是 Scheme 的构建者。这份力量属于你！[fn:27]
+我们保证你将通过本教程学会 ~Scheme~ 。如果你已经学到这里，你收获的远不止于此：你不再只是 ~Scheme~ 的使用者，
+而是 ~Scheme~ 的构建者。这份力量属于你！[fn:27]
 
 ** 嵌入 Guile 环境(Embed Guile Interpreter)
 
@@ -1473,7 +1489,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
      #include <cstdlib>
      #include <cstring>
 
-     /*
+     /**
       * (subprocess "shell command string")
       *  返回一个 alist:
       *    ((output . "stdout 内容")
@@ -1569,7 +1585,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 4. 这里也可以使用 ~just~ ，创建 ~justfile~ ：
 
-   #+begin_src
+   #+begin_src justfile
      root := justfile_directory()
 
      [private]
@@ -1578,12 +1594,12 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
      @build:
        cd {{root}}
-         clang++ -O2 -o main main.cpp $(pkg-config guile-3.0 --cflags --libs)
+       clang++ -O2 -o main main.cpp $(pkg-config guile-3.0 --cflags --libs)
 
      @test:
        cd {{root}}
-         ./main -c '(display (subprocess "echo hello world")) (newline)'
-           ./main demo.scm
+       ./main -c '(display (subprocess "echo hello world")) (newline)'
+       ./main demo.scm
 
      @clean:
        cd {{root}} && rm -rf main"))
@@ -1617,3 +1633,28 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
      just build
      just test
    #+end_src
+
+** 脚注
+
+- [fn:1] ~R5RS~ 指的是《算法语言 ~Scheme~ 的修订（第 5 版）报告》。它并非 ~Scheme~ 的唯一版本，
+  但它篇幅短小、简洁且极简。在某些方面，它可能过于精简：谈到实际使用的库时，
+  ~R5RS~ ~Scheme~ 的实现彼此之间不兼容是出了名的，这很大程度上是因为 ~R5RS~ 甚至都没有包含一个库系统！
+  尽管如此， ~R5RS~ 篇幅简短、易于阅读。如果你喜欢这份文档，
+  我们建议你阅读 ~R5RS~（或者 ~R7RS-small~ ，它篇幅只稍长一点，却是针对 ~Scheme~ 的、兼容性更强的现代报告）。
+- [fn:2] 通常， ~Scheme/Lisp~ 程序员的编辑器会帮他们完成括号管理的工作，而且大多数代码是通过缩进而非括号分组来阅读的。
+  换句话说， ~Lisp~ 程序员通常根本不会花太多时间去思考括号问题。不过，由于大多数编程语言都不采用这种语法，
+  有经验的程序员有时会觉得带括号的 ~Lisp~ 语法令人望而生畏。（一般来说，编程新手学习传统 ~Lisp~ 语法要比不熟悉 ~Lisp~ 的资深程序员轻松得多。）
+  我们发现，在举办编程入门研讨班时，初次接触编程的学生开始编写程序后并不会觉得 ~Lisp~ 语法可怕，
+  但有经验的程序员会有这种感受，因为如果你了解其他大多数语言， ~Lisp~ 的语法第一眼看上去会很陌生。
+  我们甚至发现，在同时教授 ~Scheme~ （通过 ~Racket~ ）和 ~Python~ 的过程中，
+  许多完全没有编程背景的学生（这些研讨班面向人文社科背景的学生）都明确表示偏爱带括号的 ~Lisp~ 语法，
+  因为它清晰易懂，而且在合适的编辑器支持下（ ~Racket~ 凭借其对新手友好的集成开发环境 ~DrRacket~ 轻松实现这一点），
+  编写和调试代码也更简单。想了解更多关于这一现象的内容，可以查看演讲《 ~Lisp~ 但很优美；人人可用的 ~Lisp~ 》。
+- [fn:3] 还有 ~letrec~ ，它允许绑定项相互（或自身）递归引用。 ~let*~ 和 ~letrec~ 理论上都存在一定开销，
+  但足够先进的编译器能够识别出这两种构造何时等价于 ~let~ ，并进行相应优化。如果从头设计 ~Scheme~ 语言，
+  或许只保留一种能同时涵盖 ~let~ 、 ~let*~ 和 ~letrec~ 的 ~let~ 会更合理。可惜，历史已成定局。
+- [fn:4] 这种表示法与 ~cons~ 单元的设计直接相关，我们将在 **列表与“cons”** 中对此进行更详细的讨论。
+- [fn:5] 在 ~Scheme~ 中，用于检验真/假的过程被称为谓词。结合自然语言和数学领域中谓词的广义定义——即用于表示某种关系的事物——这一说法可能会让人有些困惑。
+  从技术层面来讲，返回布尔值的检验确实能体现与该检验相关的一种关系，因此这种说法并无不妥，但它可能会因读者的背景不同而让人感觉不符合直觉。
+  传统上， ~Scheme~ 的谓词会附加一个 ~?~ 后缀。 ~?~ 后缀通常读作“哈？”，因此 ~“string-huh?”~ 就是对应的读法。
+  在其他一些 ~Lisp~ 方言中，会采用与 ~Scheme~ 中 ~?~ 用法相同的 ~-p~ 后缀。

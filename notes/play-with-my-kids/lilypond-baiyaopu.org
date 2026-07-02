@@ -1,5 +1,5 @@
 #+title: 用 lilypond 打谱百妖谱的乐谱
-#+date: 2026/06/22
+#+date: 2026/07/02
 #+author: Donkey <anjingyu_ws@foxmail.com>
 
 ** 楔子(Prologue)
@@ -13,14 +13,14 @@
   笔者用的是 =Ubuntu 24.04= 系统，以及家中的一个 =macOS= ，所以后面的操作以这两个平台为主。
 #+end_note
 
-在 =Ubuntu= 上安装 ~lilypond~ 非常容易，只需要从软件源中直接安装即可，而且安装过程还会贴心的为你安装好对应的 =EMACS= 扩展：
+在 =Ubuntu= 上安装 ~lilypond~ 非常容易，只需要从软件源中直接安装即可，而且安装过程还会贴心的为你安装好对应的 =Emacs= 扩展：
 
 #+begin_src bash
   sudo apt install -y lilypond
 #+end_src
 
 安装完成后，你可以通过 ~lilypond --version~ 来查看是否安装成功，成功的话就会有版本信息输出，对于 =Ubuntu 24.04= 来说，这个版本是 ~2.24.3~ 。
-到这里，其实 ~lilypond~ 就已经安装完成，可以使用了，我们可以直接打开编辑器(~EMACS~)编写一个官方例子测试下，创建文件 ~1.ly~ ：
+到这里，其实 ~lilypond~ 就已经安装完成，可以使用了，我们可以直接打开编辑器(~Emacs~)编写一个官方例子测试下，创建文件 ~1.ly~ ：
 
 #+begin_src lilypond
   \header{ tagline="" }
@@ -46,10 +46,10 @@
 
 [[file:images/notations.png]]
 
-如果你恰巧也跟笔者一样，使用 ~EMACS~ 编辑器，那么接下来的部分可能对你有所帮助，可以通过配置 ~EMACS~ 来实现友好的 ~lilypond~ 乐谱编辑，
-如果你不使用 ~EMACS~ ，那么我推荐你使用[[https://www.frescobaldi.org][frescobaldi]]，这也是官方推荐的所见即所得编辑器之一。
+如果你恰巧也跟笔者一样，使用 ~Emacs~ 编辑器，那么接下来的部分可能对你有所帮助，可以通过配置 ~Emacs~ 来实现友好的 ~lilypond~ 乐谱编辑，
+如果你不使用 ~Emacs~ ，那么我推荐你使用[[https://www.frescobaldi.org][frescobaldi]]，这也是官方推荐的所见即所得编辑器之一。
 
-*** EMACS 配置
+*** Emacs 配置
 
 
 
