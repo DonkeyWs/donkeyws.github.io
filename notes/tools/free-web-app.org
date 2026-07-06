@@ -6,6 +6,10 @@
 
 打算带着孩子做一点有意思的小应用，学习+娱乐，最简单，成本最低的就是从Web应用开始。
 
+#+begin_important
+由于众所周知的原因，以下方法在国内访问是需要梯子的，梯子请自备。
+#+end_important
+
 ** =GitHub Pages= + =Cloudflare Workers= + =Cloudflare D1=
 
 #+begin_note
@@ -54,17 +58,17 @@
 
 创建成功后，会输出数据库的 =ID= ，这个要记录下来，填写到项目的 =wrangler.jsonc= 文件中(实际上过程中你可以选择让工具帮你填写到配置文件中)：
 
-#+begin_src json
-{
-  "d1_databases": [
-    {
-      "binding": "blog_db",
-      "database_name": "blog-db",
-      "database_id": "<Your ID>",
-      "remote": false
-    }
-  ]
-}
+#+begin_src javascript
+  {
+      "d1_databases": [
+	{
+	    "binding": "blog_db",
+	    "database_name": "blog-db",
+	    "database_id": "<Your ID>",
+	    "remote": false
+	}
+      ]
+  }
 #+end_src
 
 有了数据库之后，可以创建数据表了：
@@ -78,65 +82,65 @@
 创建后端服务 =src/index.js= ：
 
 #+begin_src javascript
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-    if (url.pathname == "/api/note" && request.method == "POST") {
-      const { title, content } = await request.json();
-      // NOTE: Here you should note that what the name you bind in wrangler.jsonc("d1_databases.bingding")
-      // here I bind it as "blog_db"
-      await env.blog_db.prepare("INSERT INTO notes (title, content, created_at) VALUES (?, ?, ?)")
-          .bind(title, content, new Date().toISOString()).run();
-      return Response.json({ ok: true });
-    }
-    return env.ASSETS.fetch(request);
-  }
-};
+  export default {
+      async fetch(request, env) {
+	const url = new URL(request.url);
+	if (url.pathname == "/api/note" && request.method == "POST") {
+	    const { title, content } = await request.json();
+	    // NOTE: Here you should note that what the name you bind in wrangler.jsonc("d1_databases.bingding")
+	    // here I bind it as "blog_db"
+	    await env.blog_db.prepare("INSERT INTO notes (title, content, created_at) VALUES (?, ?, ?)")
+		.bind(title, content, new Date().toISOString()).run();
+	    return Response.json({ ok: true });
+	}
+	return env.ASSETS.fetch(request);
+      }
+  };
 #+end_src
 
 在配置文件中添加两行：
 
-#+begin_src json
-{
-  // ...
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS", ///< binding the env.ASSETS
-    "run_worker_first": ["/api/*"] ///< here is the new line
-  },
-  // ...
-}
+#+begin_src javascript
+  {
+      // ...
+      "assets": {
+	"directory": "./public",
+	"binding": "ASSETS", ///< binding the env.ASSETS
+	"run_worker_first": ["/api/*"] ///< here is the new line
+      },
+      // ...
+  }
 #+end_src
 
 创建前端 =public/index.html= ：
 
 #+begin_src html
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Notes</title>
-	</head>
-	<body>
-		<form id="form">
-			<input type="text" id="title" placeholder="Title" required />
-			<input type="text" id="content" placeholder="Content" required />
-			<button type="submit">Submit</button>
-		</form>
-		<script>
-			document.getElementById("form").addEventListener("submit", async (e) => {
-				e.preventDefault();
-				const res = await fetch("/api/note", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ title: document.getElementById("title").value, content: document.getElementById("content").value })
-				});
-				if (res.ok) alert("Successfully!");
-			});
-		</script>
-	</body>
-</html>
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Notes</title>
+    </head>
+    <body>
+      <form id="form">
+	<input type="text" id="title" placeholder="Title" required />
+	<input type="text" id="content" placeholder="Content" required />
+	<button type="submit">Submit</button>
+      </form>
+      <script>
+	document.getElementById("form").addEventListener("submit", async (e) => {
+	e.preventDefault();
+	const res = await fetch("/api/note", {
+	method: "POST",
+	headers: { "Content-Type": "application/json" },
+	body: JSON.stringify({ title: document.getElementById("title").value, content: document.getElementById("content").value })
+	});
+	if (res.ok) alert("Successfully!");
+	});
+      </script>
+    </body>
+  </html>
 #+end_src
 
 本地运行测试：
@@ -145,19 +149,19 @@ export default {
 
 如果需要先本地测试，那么数据库的选项需要注意，改成本地：
 
-#+begin_src json
-{
-  // ...
-	"d1_databases": [
-		{
-			"binding": "blog_db",
-			"database_name": "blog-db",
-			"database_id": "<Your ID>",
-			"remote": false ///< Here, false indicates local
-		}
-	],
-  // ...
-}
+#+begin_src javascript
+  {
+      // ...
+      "d1_databases": [
+  	{
+  	    "binding": "blog_db",
+  	    "database_name": "blog-db",
+  	    "database_id": "<Your ID>",
+  	    "remote": false ///< Here, false indicates local
+  	}
+      ],
+      // ...
+  }
 #+end_src
 
 #+end_note

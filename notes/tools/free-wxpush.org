@@ -1,0 +1,32 @@
+#+title: 免费的消息推送服务
+#+date: 2026/07/06
+#+author: "Donkey" <anjingyu_ws@foxmail.com>
+
+** 楔子(Prologue)
+
+有时候，作为个人开发者，总有些消息需要及时推送到手机，比如，编译报错，文章发布之类的，
+飞书个人版带上机器人，本身是个不错的选择，不过这里会用一个更大众化的方案，微信。
+
+** 微信测试号
+
+1. 打开[[https://mp.weixin.qq.com/debug/cgi-bin/sandbox?t=sandbox/login][微信公众平台 - 测试号管理]]，微信扫码登录。
+2. 登录之后记录“测试号信息”， =appID= 和 =appsecret= 。
+3. 扫描“测试号二维码”关注此测试公众号，关注成功后，“用户列表”中会出现“昵称”和“微信号”，
+   其中大呃“微信号”就是 =OpenID (WX_USERID)= ，复制保存下来。
+4. “模板消息接口”中点击“新增测试模板”，添加后会看到“模板ID”，保存下来，用于后续调用。
+
+** =Github= + =Cloudflare= 部署
+
+1. 登录 [[https://dash.cloudflare.com/][Cloudflare]] ，左侧「Workers 和 Pages」→「创建应用程序」→「连接到 GitHub」→ 连接到你的项目并配置
+2. 等待编译好之后，「Workers 和 Pages」页面就会有新的条目可以查看，点击条目后面的三个点菜单，找到「配置」→「变量」，加入如下变量：
+   - =API_TOKEN= : 用于接口调用的访问令牌，请设置一个足够复杂的随机字符串。
+   - =WX_APPID= : 您的微信公众号 =appID= 。
+   - =WX_SECRET= : 您的微信公众号 =appsecret= 。
+   - =WX_USERID= : 默认接收消息用户的 =OpenID= ，多个用户请用 =|= 符号分隔 (例如 openid1|openid2)。
+   - =WX_TEMPLATE_ID= : 您要使用的微信模板消息 =ID= 。
+   - =WX_BASE_URL= : (可选) 点击模板消息后跳转的基础 =URL= 。
+3. 
+
+** 参考
+
+- [[https://github.com/frankiejun/wxpush][微信消息推送服务]]

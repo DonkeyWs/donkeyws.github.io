@@ -181,7 +181,7 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> ((lambda (name)
-  	 (string-append "Hello " name "!"))
+           (string-append "Hello " name "!"))
          "Horace")
   ; => "Hello Horace!"
 #+end_src
@@ -200,7 +200,7 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (let ((name "Horace"))
-  	(string-append "Hello " name "!"))
+          (string-append "Hello " name "!"))
   ; => "Hello Horace!"
 #+end_src
 
@@ -209,10 +209,10 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (let ((name "Horace"))
-  	(string-append "Hello " name "!"))
+          (string-append "Hello " name "!"))
   ; => "Hello Horace!"
   REPL> ((lambda (name)
-  	 (string-append "Hello " name "!"))
+           (string-append "Hello " name "!"))
          "Horace")
   ; => "Hello Horace!"
 #+end_src
@@ -221,9 +221,9 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (let* ((name "Horace")
-  	     (greeting
-  	      (string-append "Hello " name "!\n")))
-  	(display greeting))   ; print greeting to screen
+               (greeting
+                (string-append "Hello " name "!\n")))
+          (display greeting))   ; print greeting to screen
   ; prints: Hello Horace!
 #+end_src
 
@@ -239,8 +239,8 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define (chatty-add chatty-name . nums)
-  	(format #t "<~a> If you add those together you get ~a!\n"
-  		chatty-name (apply + nums)))
+          (format #t "<~a> If you add those together you get ~a!\n"
+                  chatty-name (apply + nums)))
   REPL> (chatty-add "Chester" 2 4 8 6)
   ; Prints:
   ;   <Chester> If you add those together you get 20!
@@ -250,18 +250,18 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define* (shopkeeper thing-to-buy
-  			   #:optional (how-many 1)
-  			   (cost 20)
-  			   #:key (shopkeeper "Sammy")
-  			   (store "Plentiful Great Produce"))
-  	(format #t "You walk into ~a, grab something from the shelves,\n"
-  		store)
-  	(display "and walk up to the counter.\n\n")
-  	(format #t "~a looks at you and says, "
-  		shopkeeper)
-  	(format #t "'~a ~a, eh? That'll be ~a coins!'\n"
-  		how-many thing-to-buy
-  		(* cost how-many)))
+                             #:optional (how-many 1)
+                             (cost 20)
+                             #:key (shopkeeper "Sammy")
+                             (store "Plentiful Great Produce"))
+           (format #t "You walk into ~a, grab something from the shelves,\n"
+                   store)
+           (display "and walk up to the counter.\n\n")
+           (format #t "~a looks at you and says, "
+                   shopkeeper)
+           (format #t "'~a ~a, eh? That'll be ~a coins!'\n"
+                   how-many thing-to-buy
+                   (* cost how-many)))
   REPL> (shopkeeper "apples")
   ; Prints:
   ;   You walk into Plentiful Great Produce, grab something from the shelves,
@@ -275,8 +275,8 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
   ;
   ;   Sammy looks at you and says, '10 bananas, eh? That'll be 280 coins!'
   REPL> (shopkeeper "screws" 3 2
-  		  #:shopkeeper "Horace"
-  		  #:store "Horace's Hardware")
+                    #:shopkeeper "Horace"
+                    #:store "Horace's Hardware")
   ; Prints:
   ;   You walk into Horace's Hardware, grab something from the shelves,
   ;   and walk up to the counter.
@@ -290,12 +290,12 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 #+begin_src scheme
   REPL> (define (add-and-multiply x y)
   	(values (+ x y)
-  		(* x y)))
+                  (* x y)))
   REPL> (add-and-multiply 2 8)
   ; => 10
   ; => 16
   REPL> (define-values (added multiplied)
-  	(add-and-multiply 3 10))
+          (add-and-multiply 3 10))
   REPL> added
   ; => 13
   REPL> multiplied
@@ -334,9 +334,9 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define (string-enthusiast obj)
-  	(if (string? obj)
-  	    "Oh my gosh you gave me A STRING!!!"
-  	    "That WASN'T A STRING AT ALL!! MORE STRINGS PLEASE!"))
+          (if (string? obj)
+              "Oh my gosh you gave me A STRING!!!"
+              "That WASN'T A STRING AT ALL!! MORE STRINGS PLEASE!"))
   REPL> (string-enthusiast "carrot")
   ; => "Oh my gosh you gave me A STRING!!!"
   REPL> (string-enthusiast 529)
@@ -363,11 +363,11 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define (goldilocks n smallest-ok biggest-ok)
-  	(if (< n smallest-ok)
-  	    "Too small!"
-  	    (if (> n biggest-ok)
-  		"Too big!"
-  		"Just right!")))
+          (if (< n smallest-ok)
+              "Too small!"
+              (if (> n biggest-ok)
+                  "Too big!"
+                  "Just right!")))
   REPL> (goldilocks 3 10 20)
   ; => "Too small!"
   REPL> (goldilocks 33 10 20)
@@ -393,8 +393,8 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
     (if (< n smallest-ok)
         "Too small!"
         (if (> n biggest-ok)
-  	  "Too big!"
-  	  "Just right!")))
+            "Too big!"
+            "Just right!")))
 
   ;; "cond" 版本
   (define (goldilocks n smallest-ok biggest-ok)
@@ -434,9 +434,9 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
   REPL> (member 'z '(a b c))
   ; => #f
   REPL> (define (fruit-sleuth fruit basket)
-  	(if (member fruit basket)
-  	    "Found the fruit you're looking for!"
-  	    "No fruit found! Gadzooks!"))
+          (if (member fruit basket)
+              "Found the fruit you're looking for!"
+              "No fruit found! Gadzooks!"))
   REPL> (define fruit-basket '(apple banana citron))
   REPL> (fruit-sleuth 'banana fruit-basket)
   ; => "Found the fruit you're looking for!"
@@ -527,10 +527,10 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
   REPL> '(+ 1 2 (- 8 4))
   ; => (+ 1 2 (- 8 4))
   REPL> (let ((name "Horace"))
-  	(string-append "Hello " name "!"))
+          (string-append "Hello " name "!"))
   ; => "Hello Horace!"
   REPL> '(let ((name "Horace"))
-  	 (string-append "Hello " name "!"))
+           (string-append "Hello " name "!"))
   ; => (let ((name "Horace")) (string-append "Hello " name "!"))
 #+end_src
 
@@ -555,9 +555,9 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define animal-noises
-  	'((cat . meow)
-  	  (dog . woof)
-  	  (sheep . baa)))
+          '((cat . meow)
+            (dog . woof)
+            (sheep . baa)))
   REPL> (assoc 'cat animal-noises)
   ; => (cat . meow)
   REPL> (assoc 'alien animal-noises)
@@ -575,17 +575,17 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define (cat-years years)
-  	(cond
-  	 ((<= years 1)       ; 第一年相当于15岁
-  	  (* years 15))
-  	 ((<= years 2)
-  	  (+ 15 (* 9 (- years 1))))   ; 第二年加9岁
-  	 (else
-  	  (+ 24 (* 4 (- years 2)))))) ; 之后每年加4岁
+          (cond
+           ((<= years 1)       ; 第一年相当于15岁
+            (* years 15))
+           ((<= years 2)
+            (+ 15 (* 9 (- years 1))))   ; 第二年加9岁
+           (else
+            (+ 24 (* 4 (- years 2)))))) ; 之后每年加4岁
   REPL> (define (cat-entry name age)
-  	`(cat (name ,name)
-  	      (age  ,age)
-  	      (cat-years-age ,(cat-years age))))
+          `(cat (name ,name)
+                (age  ,age)
+                (cat-years-age ,(cat-years age))))
   REPL> (cat-entry "Missy Rose" 16)
   ; => (cat (name "Missy Rose")
   ;         (age 16)
@@ -604,13 +604,13 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define (goldilocks n smallest-ok biggest-ok)
-  	(cond
-  	 ((< n smallest-ok)
-  	  "Too small!")
-  	 ((> n biggest-ok)
-  	  "Too big!")
-  	 (else
-  	  "Just right!")))
+          (cond
+           ((< n smallest-ok)
+            "Too small!")
+           ((> n biggest-ok)
+            "Too big!")
+           (else
+            "Just right!")))
   REPL> (goldilocks 3 10 20)
   ; => "Too small!"
   REPL> (goldilocks 33 10 20)
@@ -647,7 +647,7 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define goldi
-  	(make-goldilocks 10 30))
+          (make-goldilocks 10 30))
   REPL> (goldi 7)
   ; => "Too small!"
   REPL> (goldi 256)
@@ -665,13 +665,13 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define (abstract-cons car-data cdr-data)
-  	(lambda (method)
-  	  (cond
-  	   ((eq? method 'car)
-  	    car-data)
-  	   ((eq? method 'cdr)
-  	    cdr-data)
-  	   (else (error "Unknown method:" method)))))
+          (lambda (method)
+            (cond
+             ((eq? method 'car)
+              car-data)
+             ((eq? method 'cdr)
+              cdr-data)
+             (else (error "Unknown method:" method)))))
   REPL> (define our-cons (abstract-cons 'foo 'bar))
   REPL> (our-cons 'car)
   ; => foo
@@ -708,7 +708,7 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define (symbol-length sym)
-  	(string-length (symbol->string sym)))
+          (string-length (symbol->string sym)))
   REPL> (map symbol-length '(basil oregano parsley thyme))
   ; => (5 7 7 5)
 #+end_src
@@ -717,10 +717,10 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (map (lambda (str)
-  	     (string-append "I just love "
-  			    (string-upcase str)
-  			    "!!!"))
-  	   '("strawberries" "bananas" "grapes"))
+               (string-append "I just love "
+                              (string-upcase str)
+                              "!!!"))
+             '("strawberries" "bananas" "grapes"))
   ; => ("I just love STRAWBERRIES!!!"
   ;     "I just love BANANAS!!!"
   ;     "I just love GRAPES!!!")
@@ -731,11 +731,11 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (for-each (lambda (str)
-  		  (display
-  		   (string-append "I just love "
-  				  (string-upcase str)
-  				  "!!!\n")))
-  		'("ice cream" "fudge" "cookies"))
+                    (display
+                     (string-append "I just love "
+                                    (string-upcase str)
+                                    "!!!\n")))
+                  '("ice cream" "fudge" "cookies"))
   ; prints:
   ;   I just love ICE CREAM!!!
   ;   I just love FUDGE!!!
@@ -754,8 +754,8 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
     (if (eq? lst '())  ; 列表是否为空？
         'done          ; 若为空，返回 "done"
         (let ((item (car lst)))  ; 不为空则取出当前元素
-  	(proc item)            ; 对当前元素执行过程
-  	(for-each proc (cdr lst)))))  ; 递归处理剩余元素
+  	roc item)            ; 对当前元素执行过程
+        or-each proc (cdr lst)))))  ; 递归处理剩余元素
 #+end_src
 
 它会依次调用 ~proc~ 处理 ~lst~ 中的每一项，直到处理完所有项。如果你有其他编程语言的使用经验，
@@ -771,8 +771,8 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
     (if (= depth 0)
         '(0)
         (list depth
-  	    (build-tree (- depth 1))
-  	    (build-tree (- depth 1)))))
+              (build-tree (- depth 1))
+              (build-tree (- depth 1)))))
 #+end_src
 
 #+begin_src scheme
@@ -790,14 +790,14 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 或者，更清晰地可视化：
 
 #+begin_example
-       3
-      / \
-     /   \
-    2     2
-   / \   / \
-  1  1   1  1
- /\  /\ /\  /\
-0 0 0 0 0 0 0 0
+        3
+       / \
+      /   \
+     2     2
+    / \   / \
+   1  1   1  1
+  /\  /\ /\  /\
+ 0 0 0 0 0 0 0 0
 #+end_example
 
 然而，与 ~for-each~ 不同， ~build-tree~ 不会在尾位置调用自身。按照这段代码的编写方式，
@@ -809,24 +809,24 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (letrec ((alice
-  		(lambda (first?)
-  		  (report-status "Alice" first?)
-  		  (if first? (bob #f))))
-  	       (bob
-  		(lambda (first?)
-  		  (report-status "Bob" first?)
-  		  (if first? (alice #f))))
-  	       (report-status
-  		(lambda (name first?)
-  		  (display
-  		   (string-append name " is "
-  				  (if first?
-  				      "first"
-  				      "second")
-  				  "!\n")))))
-  	(alice #t)
-  	(display "-----\n")
-  	(bob #t))
+                  (lambda (first?)
+                    (report-status "Alice" first?)
+                    (if first? (bob #f))))
+                 (bob
+                  (lambda (first?)
+                    (report-status "Bob" first?)
+                    (if first? (alice #f))))
+                 (report-status
+                  (lambda (name first?)
+                    (display
+                     (string-append name " is "
+                                    (if first?
+                                        "first"
+                                        "second")
+                                    "!\n")))))
+          (alice #t)
+          (display "-----\n")
+          (bob #t))
   ; prints:
   ;   Alice is first!
   ;   Bob is second!
@@ -839,14 +839,14 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (let loop ((words '("carrot" "potato" "pea" "celery"))
-  		 (num-words 0)
-  		 (num-chars 0))
-  	(if (eq? words '())
-  	    (format #f "We found ~a words and ~a chars!"
-  		    num-words num-chars)
-  	    (loop (cdr words)
-  		  (+ num-words 1)
-  		  (+ num-chars (string-length (car words))))))
+                   (num-words 0)
+                   (num-chars 0))
+          (if (eq? words '())
+              (format #f "We found ~a words and ~a chars!"
+                      num-words num-chars)
+              (loop (cdr words)
+                    (+ num-words 1)
+                    (+ num-chars (string-length (car words))))))
   ; => "We found 4 words and 21 chars!"
 #+end_src
 
@@ -872,13 +872,13 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
 
 #+begin_src scheme
   REPL> (define (make-countdown n)
-  	(lambda ()
-  	  (define last-n n)
-  	  (if (zero? n)
-  	      0
-  	      (begin
-  		(set! n (- n 1))
-  		last-n))))
+          (lambda ()
+            (define last-n n)
+            (if (zero? n)
+                0
+                (begin
+                  (set! n (- n 1))
+                  last-n))))
   REPL> (define cdown (make-countdown 3))
   REPL> (cdown)
   ; => 3
@@ -984,11 +984,11 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 #+begin_src scheme
   REPL> (define (when test . body)
-  	`(if ,test
-  	     ,(cons 'begin body)))
+          `(if ,test
+               ,(cons 'begin body)))
   REPL> (when '(our-test)
-  	'(do-thing-1)
-  	'(do-thing-2))
+          '(do-thing-1)
+          '(do-thing-2))
   ; => (if (our-test)
   ;        (begin
   ;          (do-thing-1)
@@ -1024,7 +1024,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 #+end_src
 
 ~define-syntax-rule~ 利用模式匹配来实现宏。 ~define-syntax-rule~ 的第一个参数描述用户将输入的模式，
-第二个参数描述将被展开的模板。19我们还可以注意到， ~body ...~ 同时出现在模式和模板中；
+第二个参数描述将被展开的模板[fn:19]。我们还可以注意到， ~body ...~ 同时出现在模式和模板中；
 模式中的 ~...~ 省略号表示将从用户输入中捕获多个表达式，而模板中的 ~...~ 则表示重复操作应发生的位置。
 我们可以看到，使用这种机制无需手动对内容进行引用； ~Scheme~ 会巧妙地为我们处理这一点。
 
@@ -1034,15 +1034,15 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 对于简单的语法形式编写起来更轻松，但对于更复杂的语法形式则难度更大，且其底层工作原理也更不直观。
 因此，尽管你在 ~Scheme~ 中可能永远不会使用 ~define-macro~ 这种方法，但它是理解“代码生成代码”背后理念的有效途径。
 
-既然我们已经知道了如何用 ~Scheme~ 的方式生成新语法，接下来让我们看看能否让生活比以前更便捷。我们回顾一下之前使用的 ~for-each~ ：
+既然我们已经知道了如何用 ~Scheme~ 的方式生成新语法，接下来让我们看看能否让生活比以前更便捷。我们回顾一下之前使用的 ~for-each~ 
 
 #+begin_src scheme
   REPL> (for-each (lambda (str)
-  		  (display
-  		   (string-append "I just love "
-  				  (string-upcase str)
-  				  "!!!\n")))
-  		'("strawberries" "bananas" "grapes"))
+                    (display
+                     (string-append "I just love "
+                                    (string-upcase str)
+                                    "!!!\n")))
+                  '("strawberries" "bananas" "grapes"))
   ; prints:
   ;   I just love STRAWBERRIES!!!
   ;   I just love BANANAS!!!
@@ -1054,40 +1054,40 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 #+begin_src scheme
   (define-syntax-rule (for (item lst) body ...)
     (for-each (lambda (item)
-  	      body ...)
-  	    lst))
+                body ...)
+              lst))
 #+end_src
 
 我们来试试它：
 
 #+begin_src scheme
   REPL> (for (str '("strawberries" "bananas" "grapes"))
-  	   (display
-  	    (string-append "I just love "
-  			   (string-upcase str)
-  			   "!!!\n")))
+             (display
+              (string-append "I just love "
+                             (string-upcase str)
+                             "!!!\n")))
   ; prints:
   ;   I just love STRAWBERRIES!!!
   ;   I just love BANANAS!!!
   ;   I just love GRAPES!!!
 #+end_src
 
-这样就可以了！这样可读性就高多了。[fn:20]
+这样就可以了！这样可读性就高多了[fn:20]。
 
 我们不必就此打住。 ~Spritely Goblins~ 中的 ~methods~ 特性就是宏的一个示例。以下是其简化版本：
 
 #+begin_src scheme
   (define-syntax-rule (methods ((method-id method-args ...)
-  			      body ...) ...)
+                                body ...) ...)
     (lambda (method . args)
       (letrec ((method-id
-  	      (lambda (method-args ...)
-  		body ...)) ...)
+                (lambda (method-args ...)
+                  body ...)) ...)
         (cond
          ((eq? method (quote method-id))
-  	(apply method-id args)) ...
-  	(else
-  	 (error "No such method:" method))))))
+          (apply method-id args)) ...
+          (else
+           (error "No such method:" method))))))
 #+end_src
 
 我们在这里既能同时看到 ~Scheme~ 风格模式匹配示例的表现力，也能发现，借助多层省略号（ ~...~ ），
@@ -1097,21 +1097,21 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 #+begin_src scheme
   REPL> (define (make-enemy name hp)
-  	(methods
-  	 ((get-name)
-  	  name)
-  	 ((damage-me weapon hp-lost)
-  	  (cond
-  	   ((dead?)
-  	    (format #t "Poor ~a is already dead!\n" name))
-  	   (else
-  	    (set! hp (- hp hp-lost))
-  	    (format #t "You attack ~a, doing ~a damage!\n"
-  		    name hp-lost))))
-  	 ((dead?)
-  	  (<= hp 0))))
+          (methods
+           ((get-name)
+            name)
+           ((damage-me weapon hp-lost)
+            (cond
+             ((dead?)
+              (format #t "Poor ~a is already dead!\n" name))
+             (else
+              (set! hp (- hp hp-lost))
+              (format #t "You attack ~a, doing ~a damage!\n"
+                      name hp-lost))))
+           ((dead?)
+            (<= hp 0))))
   REPL> (define hobgob
-  	(make-enemy "Hobgoblin" 25))
+        (make-enemy "Hobgoblin" 25))
   REPL> (hobgob 'get-name)
   ; => "Hobgoblin"
   REPL> (hobgob 'dead?)
@@ -1155,7 +1155,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
     (if (eq? names '())
         env
         (cons (cons (car names) (car vals))
-  	    (extend-env env (cdr names) (cdr vals)))))
+        (extend-env env (cdr names) (cdr vals)))))
 
   (define (evaluate expr env)
     (match expr
@@ -1171,8 +1171,8 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
       ;; Conditionals
       (('if test consequent alternate)
        (if (evaluate test env)
-  	 (evaluate consequent env)
-  	 (evaluate alternate env)))
+     (evaluate consequent env)
+     (evaluate alternate env)))
       ;; Lambdas (Procedures)
       (('lambda (args ...) body)
        (lambda (. vals)
@@ -1180,9 +1180,9 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
       ;; Procedure Invocation (Application)
       ((proc-expr arg-exprs ...)
        (apply (evaluate proc-expr env)
-  	    (map (lambda (arg-expr)
-  		   (evaluate arg-expr env))
-  		 arg-exprs)))))
+        (map (lambda (arg-expr)
+         (evaluate arg-expr env))
+       arg-exprs)))))
 #+end_src
 
 去掉注释、空行以及开头的模式匹配导入（虽非必需但很方便）后，这段代码仅有 ~30~ 行。这个求值器虽极简，却功能完备，
@@ -1206,7 +1206,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 #+begin_src scheme
   REPL> (evaluate '(* (- 8 (/ 30 5)) 21)
-  		math-env)
+                  math-env)
   ; => 42
 #+end_src
 
@@ -1216,9 +1216,9 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 #+begin_src scheme
   REPL> (evaluate '((lambda (x)
-  		    (* x x))
-  		  4)
-  		math-env)
+                      (* x x))
+                    4)
+                  math-env)
   ; => 16
 #+end_src
 
@@ -1228,19 +1228,19 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 #+begin_src scheme
   REPL> (define fib-program
-  	'((lambda (prog arg)   ; boot
-  	    (prog prog arg))
-  	  (lambda (fib n)      ; main program
-  	    (if (= n 0)
-  		0
-  		(if (= n 1)
-  		    1
-  		    (+ (fib fib (+ n -1))
-  		       (fib fib (+ n -2))))))
-  	  10))                 ; argument
+          '((lambda (prog arg)   ; boot
+              (prog prog arg))
+            (lambda (fib n)      ; main program
+              (if (= n 0)
+                  0
+                  (if (= n 1)
+                      1
+                      (+ (fib fib (+ n -1))
+                         (fib fib (+ n -2))))))
+            10))                 ; argument
   REPL> (define fib-env
-  	`((+ . ,+)
-  	  (= . ,=)))
+          `((+ . ,+)
+            (= . ,=)))
   REPL> (evaluate fib-program fib-env)
   ; => 55
 #+end_src
@@ -1267,9 +1267,9 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 #+begin_src scheme
   REPL> (env-lookup '((foo . newer-foo)
-  		    (bar . bar)
-  		    (foo . older-foo))
-  		  'foo)
+                      (bar . bar)
+                      (foo . older-foo))
+                    'foo)
   ; => 'newer-foo
 #+end_src
 
@@ -1280,7 +1280,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
     (if (eq? names '())
         env
         (cons (cons (car names) (car vals))
-  	    (extend-env env (cdr names) (cdr vals)))))
+              (extend-env env (cdr names) (cdr vals)))))
 #+end_src
 
 ~extend-env~ 接受一个环境、一个名称列表以及一个并行的值列表。这是一个我们稍后将在过程定义中使用的便捷操作。
@@ -1288,8 +1288,8 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 #+begin_src scheme
   REPL> (extend-env '((foo . foo-val))
-  		  '(bar quux)
-  		  '(bar-val quux-val))
+                    '(bar quux)
+                    '(bar-val quux-val))
   ; => ((bar . bar-val)
   ;     (quux . quux-val)
   ;     (foo . foo-val))
@@ -1366,7 +1366,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 #+begin_src scheme
   ;; 变量查找
   ((? symbol? name)
-    (env-lookup env name))
+   (env-lookup env name))
 #+end_src
 
 ~(? symbol? name)~ 部分会将 ~name~ 绑定到匹配的组件上。
@@ -1434,9 +1434,9 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
   ;; 过程调用(应用程序)
   ((proc-expr arg-exprs ...)
    (apply (evaluate proc-expr env)
-  	(map (lambda (arg-expr)
-  	       (evaluate arg-expr env))
-  	     arg-exprs)))
+          (map (lambda (arg-expr)
+                 (evaluate arg-expr env))
+               arg-exprs)))
 #+end_src
 
 这是通用过程应用的关键部分！此时，该模式会匹配任何包含一个或多个元素的列表，并判定这必然意味着将过程应用于参数。
@@ -1447,7 +1447,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 #+begin_src scheme
   REPL> (evaluate '(* (- 8 (/ 30 5)) 21)
-  		math-env)
+                  math-env)
   ; => 42
 #+end_src
 
@@ -1649,200 +1649,211 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 
 ** 脚注
 
-- [fn:1] ~R5RS~ 指的是《算法语言 ~Scheme~ 的修订（第 5 版）报告》。它并非 ~Scheme~ 的唯一版本，
-  但它篇幅短小、简洁且极简。在某些方面，它可能过于精简：谈到实际使用的库时，
-  ~R5RS~ ~Scheme~ 的实现彼此之间不兼容是出了名的，这很大程度上是因为 ~R5RS~ 甚至都没有包含一个库系统！
-  尽管如此， ~R5RS~ 篇幅简短、易于阅读。如果你喜欢这份文档，
-  我们建议你阅读 ~R5RS~（或者 ~R7RS-small~ ，它篇幅只稍长一点，却是针对 ~Scheme~ 的、兼容性更强的现代报告）。
-- [fn:2] 通常， ~Scheme/Lisp~ 程序员的编辑器会帮他们完成括号管理的工作，而且大多数代码是通过缩进而非括号分组来阅读的。
-  换句话说， ~Lisp~ 程序员通常根本不会花太多时间去思考括号问题。不过，由于大多数编程语言都不采用这种语法，
-  有经验的程序员有时会觉得带括号的 ~Lisp~ 语法令人望而生畏。（一般来说，编程新手学习传统 ~Lisp~ 语法要比不熟悉 ~Lisp~ 的资深程序员轻松得多。）
-  我们发现，在举办编程入门研讨班时，初次接触编程的学生开始编写程序后并不会觉得 ~Lisp~ 语法可怕，
-  但有经验的程序员会有这种感受，因为如果你了解其他大多数语言， ~Lisp~ 的语法第一眼看上去会很陌生。
-  我们甚至发现，在同时教授 ~Scheme~ （通过 ~Racket~ ）和 ~Python~ 的过程中，
-  许多完全没有编程背景的学生（这些研讨班面向人文社科背景的学生）都明确表示偏爱带括号的 ~Lisp~ 语法，
-  因为它清晰易懂，而且在合适的编辑器支持下（ ~Racket~ 凭借其对新手友好的集成开发环境 ~DrRacket~ 轻松实现这一点），
-  编写和调试代码也更简单。想了解更多关于这一现象的内容，可以查看演讲《 ~Lisp~ 但很优美；人人可用的 ~Lisp~ 》。
-- [fn:3] 还有 ~letrec~ ，它允许绑定项相互（或自身）递归引用。 ~let*~ 和 ~letrec~ 理论上都存在一定开销，
-  但足够先进的编译器能够识别出这两种构造何时等价于 ~let~ ，并进行相应优化。如果从头设计 ~Scheme~ 语言，
-  或许只保留一种能同时涵盖 ~let~ 、 ~let*~ 和 ~letrec~ 的 ~let~ 会更合理。可惜，历史已成定局。
-- [fn:4] 这种表示法与 ~cons~ 单元的设计直接相关，我们将在 **列表与“cons”** 中对此进行更详细的讨论。
-- [fn:5] 在 ~Scheme~ 中，用于检验真/假的过程被称为谓词。结合自然语言和数学领域中谓词的广义定义——即用于表示某种关系的事物——这一说法可能会让人有些困惑。
-  从技术层面来讲，返回布尔值的检验确实能体现与该检验相关的一种关系，因此这种说法并无不妥，但它可能会因读者的背景不同而让人感觉不符合直觉。
-  传统上， ~Scheme~ 的谓词会附加一个 ~?~ 后缀。 ~?~ 后缀通常读作“哈？”，因此 ~“string-huh?”~ 就是对应的读法。
-  在其他一些 ~Lisp~ 方言中，会采用与 ~Scheme~ 中 ~?~ 用法相同的 ~-p~ 后缀。
-- [fn:6] 在标准方案中， ~<ALTERNATE>~ 并非技术上必需。不过，许多方案默认提供了一个名为 ~when~ 的独立过程，其形式如下：
-  #+begin_src scheme
-    (when <TEST>
-      <BODY> ...)
-  #+end_src
-  在 ~Racket~ 中，不允许出现没有 ~<ALTERNATE>~ 的 ~if~ 表达式（称为“单分支 ~if~ ”），
-  即便在 ~Racket~ 之外的语言中，这种情况下也更推荐使用 ~when~ 。这同样是因为在纯函数式编程语言中，
-  不存在调用条件表达式却让其中一个分支返回无意义值的情况。换句话说，只有在产生副作用时，
-  使用 ~when~ （或“单分支 ~if~ ”）才是合理的。因此，区分这类情况有助于读者理解。
-  我们将在论 ~Scheme~ （以及一般意义上的 ~Lisp~ 语言）的可扩展性中重新探讨 ~when~ ，包括如何亲手实现它。
-- [fn:7] 诚然，在这一点上， ~Lisp~ 的前缀表示法不如中缀表示法，因为大于号/小于号的尖括号表示法本身就带有视觉上的大小感。
-  一些 ~Scheme~ 方言支持 ~SRFI-105~ ：花括号中缀表达式，这种表示法读起来会稍微容易一些。对比一下：
-  #+begin_src scheme
-    REPL> (> 8 9)
-    ; => #f
-    REPL> (< 8 9)
-    ; => #t
-    REPL> (> 8 8)
-    ; => #f
-    REPL> (>= 8 8)
-    ; => #t
-  #+end_src
-  对比
-  #+begin_src scheme
-    REPL> {8 > 9}
-    ; => #f
-    REPL> {8 < 9}
-    ; => #t
-    REPL> {8 > 8}
-    ; => #f
-    REPL> {8 >= 8}
-    ; => #t
-  #+end_src
-- [fn:8] 正如我们将在《论 ~Scheme~ （以及一般意义上的 ~Lisp~ ）的可扩展性》中看到的， ~Scheme~ 允许我们实现新的语法形式。
-  ~Scheme~ 的实现仅需一种基础的条件语法形式，因为 ~if~ 可以写成cond的简化版本，而 ~cond~ 则可以写成一系列嵌套的 ~if~ 语句。
-- [fn:9] 计算机科学中最不起眼的脚作出现在杰拉尔德·杰伊·萨斯曼与阿列克谢·拉杜尔所著的《传播者的艺术》一书中，书中仅写道：
-  #+begin_example
-  Equality is a tough subject
+[fn:1] ~R5RS~ 指的是《算法语言 ~Scheme~ 的修订（第 5 版）报告》。它并非 ~Scheme~ 的唯一版本，但它篇幅短小、简洁且极简。
+    在某些方面，它可能过于精简：谈到实际使用的库时， ~R5RS~ ~Scheme~ 的实现彼此之间不兼容是出了名的，
+    这很大程度上是因为 ~R5RS~ 甚至都没有包含一个库系统！尽管如此，~R5RS~ 篇幅简短、易于阅读。如果你喜欢这份文档，
+    我们建议你阅读 ~R5RS~（或者 ~R7RS-small~ ，它篇幅只稍长一点，却是针对 ~Scheme~ 的、兼容性更强的现代报告）。
+[fn:2] 通常， ~Scheme/Lisp~ 程序员的编辑器会帮他们完成括号管理的工作，而且大多数代码是通过缩进而非括号分组来阅读的。
+    换句话说， ~Lisp~ 程序员通常根本不会花太多时间去思考括号问题。不过，由于大多数编程语言都不采用这种语法，
+    有经验的程序员有时会觉得带括号的 ~Lisp~ 语法令人望而生畏。（一般来说，编程新手学习传统 ~Lisp~ 语法要比不熟悉 ~Lisp~ 的资深程序员轻松得多。）
+    我们发现，在举办编程入门研讨班时，初次接触编程的学生开始编写程序后并不会觉得 ~Lisp~ 语法可怕，
+    但有经验的程序员会有这种感受，因为如果你了解其他大多数语言， ~Lisp~ 的语法第一眼看上去会很陌生。
+    我们甚至发现，在同时教授 ~Scheme~ （通过 ~Racket~ ）和 ~Python~ 的过程中，
+    许多完全没有编程背景的学生（这些研讨班面向人文社科背景的学生）都明确表示偏爱带括号的 ~Lisp~ 语法，
+    因为它清晰易懂，而且在合适的编辑器支持下（ ~Racket~ 凭借其对新手友好的集成开发环境 ~DrRacket~ 轻松实现这一点），
+    编写和调试代码也更简单。想了解更多关于这一现象的内容，可以查看演讲《 ~Lisp~ 但很优美；人人可用的 ~Lisp~ 》。
+[fn:3] 还有 ~letrec~ ，它允许绑定项相互（或自身）递归引用。 ~let*~ 和 ~letrec~ 理论上都存在一定开销，
+    但足够先进的编译器能够识别出这两种构造何时等价于 ~let~ ，并进行相应优化。如果从头设计 ~Scheme~ 语言，
+    或许只保留一种能同时涵盖 ~let~ 、 ~let*~ 和 ~letrec~ 的 ~let~ 会更合理。可惜，历史已成定局。
+[fn:4] 这种表示法与 ~cons~ 单元的设计直接相关，我们将在 **列表与“cons”** 中对此进行更详细的讨论。
+[fn:5] 在 ~Scheme~ 中，用于检验真/假的过程被称为谓词。结合自然语言和数学领域中谓词的广义定义——即用于表示某种关系的事物——这一说法可能会让人有些困惑。
+    从技术层面来讲，返回布尔值的检验确实能体现与该检验相关的一种关系，因此这种说法并无不妥，但它可能会因读者的背景不同而让人感觉不符合直觉。
+    传统上， ~Scheme~ 的谓词会附加一个 ~?~ 后缀。 ~?~ 后缀通常读作“哈？”，因此 ~“string-huh?”~ 就是对应的读法。
+    在其他一些 ~Lisp~ 方言中，会采用与 ~Scheme~ 中 ~?~ 用法相同的 ~-p~ 后缀。
+[fn:6] 在标准方案中， ~<ALTERNATE>~ 并非技术上必需。不过，许多方案默认提供了一个名为 ~when~ 的独立过程，其形式如下：
 
-  平等是一个棘手的话题
-  #+end_example
-- [fn:10] ~Scheme~ 还内置对向量的支持，向量类似于列表，但具有常数时间访问的优势；不过由于无法轻松在其前端添加新元素，
-  向量在函数式编程中的实用性较低。许多 ~Scheme~ 语言还支持并提供其他有趣的数据类型，包括哈希映射和用户自定义记录。
-- [fn:11] 名称 ~cons~ 合理地指代“构造”一个对偶，而 ~car~ 和 ~cdr~ 这两个名称则是 ~Lisp~ 首次实现的完整历史细节，
-  前者指“地址寄存器的内容”，后者指“减量寄存器的内容”。无论好坏，这些术语能一直沿用下来，真是令人感慨。
+    #+begin_src scheme
+      (when <TEST>
+        <BODY> ...)
+    #+end_src
 
-  想了解一些有趣的 Lisp 历史，请查看：
-  * 《 ~Lisp~ 的历史》 作者：约翰·麦卡锡，没错，就是 ~Lisp~ 之父
-  * 《 ~Lisp~ 的演变》 作者：盖伊·L·斯蒂尔与理查德·P·加布里埃尔
-  * 《 ~LISP~ 发展史》 作者：保罗·麦克琼斯
-- [fn:12] 由于 ~car~ 和 ~cdr~ 属于这类“历史遗留细节”，人们很想用更好的名称来替换它们。
-  如果只是使用列表， ~first~ 和 ~rest~ 是非常合适的别名：
-  #+begin_src scheme
-    REPL> (first '(a b c))
-    ; => a
-    REPL> (rest '(a b c))
-    ; => (b c)
-    REPL> (first (rest '(a b c)))
-    ; => b
-  #+end_src
-  然而，在像 ~(cons 'a 'b)~ 这样的简单序对单元中，这就不太合理了…… ~rest~ 返回的是单个元素，
-  而非一个序列。事实也确实如此， ~car~ 和 ~cdr~ 这两个名称沿用至今。
-- [fn:13] 关于 ~cons~ 还有很多可以讲，它是“绝妙的”（此外，若想培养对递归的直观感知，可阅读 [[http://f.javier.io/public/books/The%20Little%20Schemer%204th%20Ed.pdf][The Little Schemer]] 。
-- [fn:14] 在 ~make-goldilocks~ 过程中，我们创建了一个名为 ~inner~ 的过程。虽然在这里使用 ~lambda~ 表达式在技术上没有问题，
-  但从 ~(make-goldilocks 10 30)~ 隐式返回的过程将是匿名的，这会让人更难理解它的实际功能。
-  #+begin_src scheme
-    REPL> (make-goldilocks 10 30) ;; 使用 lambda
-    ; => #<procedure 78d86f615b80 at <unknown port>:27:2 (n)>
-    REPL> (make-goldilocks 10 30) ;; 使用 define
-    ; => #<procedure goldilocks (n)>
-  #+end_src
-- [fn:15] 值得注意的是， ~cond~ 确实允许在其 ~<THEN-BODY>~ / ~<ELSE-BODY>~ 部分包含多个表达式，
-  但我们可以将其理解为 ~cond~ 是为包含 ~begin~ 而设计的。
-- [fn:16] ~set!~ 的全局可用性给本应受到限制的 ~Scheme~ 程序带来了问题。感兴趣的读者可以参考《基于 ~λ~ 演算的安全内核》中 ~Scheme~ 的 ~W7~ 变体所采用的替代方法。
-- [fn:17] 函数式编程开发者有时会借助一种名为单子（ ~monads~ ）的巧妙技巧来解决这个问题。本教程不会涉及单子，
-  但可以将其理解为一种巧妙且显式的时间处理方式：在原本无状态的程序中传递一组状态，以此实现对时间的管理。
-  这带来了强大的能力：时间得以存在，且以确定性的方式运行，开发者也因此成为了“时间领主”。不过，这种方式也存在一定代价，
-  它需要将底层实现细节直接暴露给开发者。 ~Goblins~ 则采用了另一种思路，正如“回合是轻量事务”和“时间旅行式分布式调试”中所讨论的那样。
-  通过在回合中捕获变化的本质，开发者获得了时间回溯的能力。结合“应用安全、库安全及其他层面”中提及的语言级安全特性，
-  可确保执行过程完全确定且被严格隔离。所有这些功能都可以通过抽象化处理变化管理的细节来实现，让开发者无需关注具体实现；
-  ~Goblins~ 的核心内核会为开发者完成相关工作。相关内容将在后续的论文中进行详细阐述。
-- [fn:18] 由于 ~Lisp~ 的抽象语法树采用与用户编程时相同的数据结构来编写，并且在其表面语法中以相同的结构直观呈现，
-  因此它被称为同像性。同像性是 ~Lisp~ 最显著的特征之一，这也是其具备高度可扩展性的重要原因。
-- [fn:19] 实际上， ~define-syntax-rule~ 本身就是语法糖。以下代码是等价的：
-  #+begin_src scheme
-    (define-syntax-rule (when test body ...)
-      (if test
-          (begin body ...)))
+    在 ~Racket~ 中，不允许出现没有 ~<ALTERNATE>~ 的 ~if~ 表达式（称为“单分支 ~if~ ”），
+    即便在 ~Racket~ 之外的语言中，这种情况下也更推荐使用 ~when~ 。这同样是因为在纯函数式编程语言中，
+    不存在调用条件表达式却让其中一个分支返回无意义值的情况。换句话说，只有在产生副作用时，
+    使用 ~when~ （或“单分支 ~if~ ”）才是合理的。因此，区分这类情况有助于读者理解。
+    我们将在论 ~Scheme~ （以及一般意义上的 ~Lisp~ 语言）的可扩展性中重新探讨 ~when~ ，包括如何亲手实现它。
+[fn:7] 诚然，在这一点上， ~Lisp~ 的前缀表示法不如中缀表示法，因为大于号/小于号的尖括号表示法本身就带有视觉上的大小感。
+    一些 ~Scheme~ 方言支持 ~SRFI-105~ ：花括号中缀表达式，这种表示法读起来会稍微容易一些。对比一下：
 
-    (define-syntax when
-      (syntax-rules ()
-        ((when test body ...)
-         (if test
-    	 (begin body ...)))))
-  #+end_src
+    #+begin_src scheme
+      REPL> (> 8 9)
+      ; => #f
+      REPL> (< 8 9)
+      ; => #t
+      REPL> (> 8 8)
+      ; => #f
+      REPL> (>= 8 8)
+      ; => #t
+    #+end_src
 
-  事实上，我们可以基于 ~define-syntax-rule~ 由 ~define-syntax~ 和 ~syntax-rules~ 构建而成：
+    对比
 
-  #+begin_src scheme
-    (define-syntax define-syntax-rule
-      (syntax-rules ()
-        ((define-syntax-rule (id pattern ...) template)
-         (define-syntax id
-           (syntax-rules ()
-    	 ((id pattern ...)
-    	  template))))))
-  #+end_src
+    #+begin_src scheme
+      REPL> {8 > 9}
+      ; => #f
+      REPL> {8 < 9}
+      ; => #t
+      REPL> {8 > 8}
+      ; => #f
+      REPL> {8 >= 8}
+      ; => #t
+    #+end_src
+[fn:8] 正如我们将在《论 ~Scheme~ （以及一般意义上的 ~Lisp~ ）的可扩展性》中看到的， ~Scheme~ 允许我们实现新的语法形式。
+    ~Scheme~ 的实现仅需一种基础的条件语法形式，因为 ~if~ 可以写成cond的简化版本，而 ~cond~ 则可以写成一系列嵌套的 ~if~ 语句。
+[fn:9] 计算机科学中最不起眼的脚作出现在杰拉尔德·杰伊·萨斯曼与阿列克谢·拉杜尔所著的《传播者的艺术》一书中，书中仅写道：
 
-  大多数 ~Scheme~ 中还有许多其他的语法转换语法形式，而且不同 ~Scheme~ 实现之间的这些形式差异很大，
-  不过 ~define-syntax~ 和 ~syntax-rules~ 是 ~Scheme~ 标准的一部分。
-- [fn:20] 给读者的一个有趣练习：尝试实现一个 ~C~ 风格的 ~for~ 循环！
-  这是 C 语言版本：
-  #+begin_src c
-    // C 语言版本的 for 循环:
-    // for ( init; condition; increment ) {
-    //      statement(s);
-    // }
-    for (i = 0; i < 10; i = i + 2) {
-        printf("i is: %d\n", i);
-    }
-  #+end_src
+    #+begin_example
+    Equality is a tough subject
 
-  尝试让以下代码正常运行：
-  #+begin_src scheme
-    (for ((i 0) (< i 10) (+ i 2))
-         (display (string-append "i is: " (number->string i) "\n")))
-  #+end_src
-- [fn:21] 这种在相似的宿主语言之上实现一种语言的思路被称为“元循环求值器”。它在计算机科学研究人员中很受欢迎，
-  是一种无需重新构建整个系统就能探索编程语言设计变体的方法。
-- [fn:22] 这是一个复杂的示例，用于演示，同时也带有一个有趣的挑战：我们实现的斐波那契算法是自递归的！
-  但自递归通常需要类似 ~letrec~ 这样的特性，而我们并未提供这一功能。为了解决这个问题，主程序（第二个过程）会通过第一个过程传递自身。
-  因此，有注释将第一个过程称为“启动程序”。这算是 ~Y~ 组合子自举技巧的一种简易实现。（不是指那家创办初创公司的企业，不过现在你就能明白该机构的命名由来了。）
-  ~Y~ 组合子实现了同样的技巧，但更具通用性。在很多方面，我们编写的这类求值器与Y组合子有诸多共通之处。
-  《 ~Y~ 的奥秘》是一篇精彩且简洁的文章，探讨了 ~Y~ 组合子以及如何从实际需求出发推导它，与我们上述的实际需求类似。
-  《 ~The Small Schemer~ 》也以编写一个元循环求值器（与上述类似）作为其精彩内容的收尾，并探讨了如何推导 ~Y~ 组合子。
-- [fn:23] 如果用户调用此过程时参数数量错误，会引发错误，但并非特别有用的错误。试着想办法给出一个更优的错误提示。
-  （提示：如果 ~args~ 和 ~vals~ 的 ~length~ 不一致，就说明出问题了！）
-- [fn:24] 这里就是在 **词法作用域** 与 **动态作用域** 之间做出选择的地方。被扩展的环境并非调用者的环境，
-  而是定义此 ~lambda~ 表达式的前一个表达式的环境……这就是我们实现 ~closures~ 部分所述功能的方式。
-  从某种意义上说，“词法作用域”是在过程的书面定义中明确设定的，具备能力安全性，且保留了“没有就无法使用”的特性。
-  而“动态作用域”则是“作用域由调用者定义”（以及其上级调用者，沿着当前调用栈一路向上），它是隐式的，同时也是 **环境性** 的，
-  包括环境权限层面的环境性，这使得动态作用域会面临更严重的安全问题（且并非巧合，它与访问控制列表系统的相似性也更高）。
-- [fn:25] 啊哈！现在我们就能明白元循环的含义了！下面这幅 ~ASCII~ 艺术图是对 ~SICP~ 中出现的元循环图示的致敬：
-  #+begin_example
-  \'.
-   \ '.                      .-****-.
-    \  \                    *       _*
-    _L__L_           _     * EVAL .'  *
-    //~ ~           / /    *.___.'    *
-    G   >           //     '.   APPLY.'
-    / \\\\-------.,//        *.____.*
-   / ' \\\______ |;3
-  |   \ \\      \//
-  #+end_example
-  从最后两个匹配子句（过程和应用）以及它们的协作方式可以清楚地看出这一点。 ~Eval~ 调用 ~apply~ ，
-  ~apply~ 调用 ~eval~ ， ~eval~ 又调用 ~apply~ ，如此反复，直到达到“不动点”（我们的计算得出了答案！）。
-  这确实是元循环的。
-- [fn:26] 值得注意的是， ~quote~ 的特性让我们无需解析文本语法就能编写解释器：我们只需引用数据结构即可！
-  事实上，大多数编程语言设计的教科书都过度关注编程语言的文本解析，给人一种错觉，即语言结构的重要部分与表层语法相关，
-  但这从本质上来说并非如此。任何可以想象的编程语言范式都可以用 ~Scheme~ 所使用的简单符号表达式表示来实现。
-  代码和数据看似相距甚远，实则不然。当然，如果我们想将其打造成一门实用的编程语言，就需要能够从磁盘的源文件中读取程序。
-  ~read~ 是 ~Scheme~ （几乎所有 ~Lisp~ 语言）的内置功能，因此这项工作总体上已经为我们完成了。不过，在 ~Scheme~ 中实现 ~read~ 功能也很简单，
-  所需的代码量与我们实现 ~evaluate~ 功能时大致相当。
-- [fn:27] 你不仅来到了最后一部分，还来到了最后一个脚注！至此，我们不妨认为你对这类内容有着真正的热情，因此我们会为你提供更多资源：
-  * 要了解评估器（比如我们上面编写的这个）的工作原理及其历史，更多内容可参考 ~William Byrd~ 精彩的演讲：[[https://www.youtube.com/watch?v=OyfBQmvr2Hc][The Most Beautiful Program Ever Written]]
-  * 《计算机程序的构造与解释》（也被称为 ~SICP~ 或“巫师书”）包含了我们在此讲解的几乎所有内容的扩展版本，
-    还介绍了如何构建事件循环、简单的约束求解器、此类求值器、逻辑编程求值器，以及能生成更高效机器码的编译器。
-    理解计算本质的最佳方式莫过于学习 ~SICP~ 。学习它的一个好方法是在阅读原文和观看 ~20~ 世纪 ~80~ 年代的讲座之间切换。
-    ~SICP~ 有纸质书版本，也有可在 ~Emacs~ 中便捷阅读的 ~info~ 手册，还有 ~HTML~ 版本，但如果你打算通过网页浏览器阅读 ~SICP~ ，我们强烈推荐[[https://sarabander.github.io/sicp/html/][这个版本]]。
-  * [[https://mitpress.mit.edu/books/little-schemer-fourth-edition][《 ~The Small Schemer~ 》]]是一本风格轻松对话式的趣味书籍。书中蕴含诸多实用知识，兼具奇幻的谜题质感，还配有赏心悦目的插图。
-    该系列还有许多后续书籍，对其他计算机科学主题展开了深入探讨。
-  * [[https://mitpress.mit.edu/books/software-design-flexibility][面向灵活性的软件设计]]汲取了《计算机程序的构造和解释》（ ~SICP~ ）中的诸多理念，并在此基础上进一步拓展。
-    在很多方面，它可以被视为《计算机程序的构造和解释》的真正续作。
-  * 更不用说直接使用 ~Scheme~ 或其他 ~Lisp~ 方言也是了解它们的绝佳方式。为 [[https://spritely.institute/][Spritely]] 或 [[https://guix.gnu.org/][Guix]] 做贡献是将这些技能付诸实践的两种绝佳方式！
-  享受这段旅程吧！
+    平等是一个棘手的话题
+    #+end_example
+[fn:10] ~Scheme~ 还内置对向量的支持，向量类似于列表，但具有常数时间访问的优势；不过由于无法轻松在其前端添加新元素，
+    向量在函数式编程中的实用性较低。许多 ~Scheme~ 语言还支持并提供其他有趣的数据类型，包括哈希映射和用户自定义记录。
+[fn:11] 名称 ~cons~ 合理地指代“构造”一个对偶，而 ~car~ 和 ~cdr~ 这两个名称则是 ~Lisp~ 首次实现的完整历史细节，
+    前者指“地址寄存器的内容”，后者指“减量寄存器的内容”。无论好坏，这些术语能一直沿用下来，真是令人感慨。
+
+    想了解一些有趣的 Lisp 历史，请查看：
+    * 《 ~Lisp~ 的历史》 作者：约翰·麦卡锡，没错，就是 ~Lisp~ 之父
+    * 《 ~Lisp~ 的演变》 作者：盖伊·L·斯蒂尔与理查德·P·加布里埃尔
+    * 《 ~LISP~ 发展史》 作者：保罗·麦克琼斯
+[fn:12] 由于 ~car~ 和 ~cdr~ 属于这类“历史遗留细节”，人们很想用更好的名称来替换它们。
+    如果只是使用列表， ~first~ 和 ~rest~ 是非常合适的别名：
+
+    #+begin_src scheme
+      REPL> (first '(a b c))
+      ; => a
+      REPL> (rest '(a b c))
+      ; => (b c)
+      REPL> (first (rest '(a b c)))
+      ; => b
+    #+end_src
+    然而，在像 ~(cons 'a 'b)~ 这样的简单序对单元中，这就不太合理了…… ~rest~ 返回的是单个元素，
+    而非一个序列。事实也确实如此， ~car~ 和 ~cdr~ 这两个名称沿用至今。
+[fn:13] 关于 ~cons~ 还有很多可以讲，它是“绝妙的”（此外，若想培养对递归的直观感知，可阅读 [[http://f.javier.io/public/books/The%20Little%20Schemer%204th%20Ed.pdf][The Little Schemer]] 。
+[fn:14] 在 ~make-goldilocks~ 过程中，我们创建了一个名为 ~inner~ 的过程。虽然在这里使用 ~lambda~ 表达式在技术上没有问题，
+    但从 ~(make-goldilocks 10 30)~ 隐式返回的过程将是匿名的，这会让人更难理解它的实际功能。
+
+    #+begin_src scheme
+      REPL> (make-goldilocks 10 30) ;; 使用 lambda
+      ; => #<procedure 78d86f615b80 at <unknown port>:27:2 (n)>
+      REPL> (make-goldilocks 10 30) ;; 使用 define
+      ; => #<procedure goldilocks (n)>
+    #+end_src
+[fn:15] 值得注意的是， ~cond~ 确实允许在其 ~<THEN-BODY>~ / ~<ELSE-BODY>~ 部分包含多个表达式，
+    但我们可以将其理解为 ~cond~ 是为包含 ~begin~ 而设计的。
+[fn:16] ~set!~ 的全局可用性给本应受到限制的 ~Scheme~ 程序带来了问题。感兴趣的读者可以参考《基于 ~λ~ 演算的安全内核》中 ~Scheme~ 的 ~W7~ 变体所采用的替代方法。
+[fn:17] 函数式编程开发者有时会借助一种名为单子（ ~monads~ ）的巧妙技巧来解决这个问题。本教程不会涉及单子，
+    但可以将其理解为一种巧妙且显式的时间处理方式：在原本无状态的程序中传递一组状态，以此实现对时间的管理。
+    这带来了强大的能力：时间得以存在，且以确定性的方式运行，开发者也因此成为了“时间领主”。不过，这种方式也存在一定代价，
+    它需要将底层实现细节直接暴露给开发者。 ~Goblins~ 则采用了另一种思路，正如“回合是轻量事务”和“时间旅行式分布式调试”中所讨论的那样。
+    通过在回合中捕获变化的本质，开发者获得了时间回溯的能力。结合“应用安全、库安全及其他层面”中提及的语言级安全特性，
+    可确保执行过程完全确定且被严格隔离。所有这些功能都可以通过抽象化处理变化管理的细节来实现，让开发者无需关注具体实现；
+    ~Goblins~ 的核心内核会为开发者完成相关工作。相关内容将在后续的论文中进行详细阐述。
+[fn:18] 由于 ~Lisp~ 的抽象语法树采用与用户编程时相同的数据结构来编写，并且在其表面语法中以相同的结构直观呈现，
+    因此它被称为同像性。同像性是 ~Lisp~ 最显著的特征之一，这也是其具备高度可扩展性的重要原因。
+[fn:19] 实际上， ~define-syntax-rule~ 本身就是语法糖。以下代码是等价的：
+
+    #+begin_src scheme
+      (define-syntax-rule (when test body ...)
+        (if test
+            (begin body ...)))
+
+      (define-syntax when
+        (syntax-rules ()
+          ((when test body ...)
+           (if test
+               (begin body ...)))))
+    #+end_src
+
+    事实上，我们可以基于 ~define-syntax-rule~ 由 ~define-syntax~ 和 ~syntax-rules~ 构建而成：
+
+    #+begin_src scheme
+      (define-syntax define-syntax-rule
+        (syntax-rules ()
+          ((define-syntax-rule (id pattern ...) template)
+           (define-syntax id
+             (syntax-rules ()
+               ((id pattern ...)
+                template))))))
+    #+end_src
+
+    大多数 ~Scheme~ 中还有许多其他的语法转换语法形式，而且不同 ~Scheme~ 实现之间的这些形式差异很大，
+    不过 ~define-syntax~ 和 ~syntax-rules~ 是 ~Scheme~ 标准的一部分。
+[fn:20] 给读者的一个有趣练习：尝试实现一个 ~C~ 风格的 ~for~ 循环！
+
+    这是 C 语言版本：
+    #+begin_src c
+      // C 语言版本的 for 循环:
+      // for ( init; condition; increment ) {
+      //      statement(s);
+      // }
+      for (i = 0; i < 10; i = i + 2) {
+          printf("i is: %d\n", i);
+      }
+    #+end_src
+
+    尝试让以下代码正常运行：
+    #+begin_src scheme
+      (for ((i 0) (< i 10) (+ i 2))
+           (display (string-append "i is: " (number->string i) "\n")))
+    #+end_src
+[fn:21] 这种在相似的宿主语言之上实现一种语言的思路被称为“元循环求值器”。它在计算机科学研究人员中很受欢迎，
+    是一种无需重新构建整个系统就能探索编程语言设计变体的方法。
+[fn:22] 这是一个复杂的示例，用于演示，同时也带有一个有趣的挑战：我们实现的斐波那契算法是自递归的！
+    但自递归通常需要类似 ~letrec~ 这样的特性，而我们并未提供这一功能。为了解决这个问题，主程序（第二个过程）会通过第一个过程传递自身。
+    因此，有注释将第一个过程称为“启动程序”。这算是 ~Y~ 组合子自举技巧的一种简易实现。（不是指那家创办初创公司的企业，不过现在你就能明白该机构的命名由来了。）
+    ~Y~ 组合子实现了同样的技巧，但更具通用性。在很多方面，我们编写的这类求值器与Y组合子有诸多共通之处。
+    《 ~Y~ 的奥秘》是一篇精彩且简洁的文章，探讨了 ~Y~ 组合子以及如何从实际需求出发推导它，与我们上述的实际需求类似。
+    《 ~The Small Schemer~ 》也以编写一个元循环求值器（与上述类似）作为其精彩内容的收尾，并探讨了如何推导 ~Y~ 组合子。
+[fn:23] 如果用户调用此过程时参数数量错误，会引发错误，但并非特别有用的错误。试着想办法给出一个更优的错误提示。
+    （提示：如果 ~args~ 和 ~vals~ 的 ~length~ 不一致，就说明出问题了！）
+[fn:24] 这里就是在 **词法作用域** 与 **动态作用域** 之间做出选择的地方。被扩展的环境并非调用者的环境，
+    而是定义此 ~lambda~ 表达式的前一个表达式的环境……这就是我们实现 ~closures~ 部分所述功能的方式。
+    从某种意义上说，“词法作用域”是在过程的书面定义中明确设定的，具备能力安全性，且保留了“没有就无法使用”的特性。
+    而“动态作用域”则是“作用域由调用者定义”（以及其上级调用者，沿着当前调用栈一路向上），它是隐式的，同时也是 **环境性** 的，
+    包括环境权限层面的环境性，这使得动态作用域会面临更严重的安全问题（且并非巧合，它与访问控制列表系统的相似性也更高）。
+[fn:25] 啊哈！现在我们就能明白元循环的含义了！下面这幅 ~ASCII~ 艺术图是对 ~SICP~ 中出现的元循环图示的致敬：
+
+    #+begin_example
+    \'.
+     \ '.                      .-****-.
+      \  \                    *       _*
+      _L__L_           _     * EVAL .'  *
+      //~ ~           / /    *.___.'    *
+      G   >           //     '.   APPLY.'
+      / \\\\-------.,//        *.____.*
+     / ' \\\______ |;3
+    |   \ \\      \//
+    #+end_example
+    从最后两个匹配子句（过程和应用）以及它们的协作方式可以清楚地看出这一点。 ~Eval~ 调用 ~apply~ ，
+    ~apply~ 调用 ~eval~ ， ~eval~ 又调用 ~apply~ ，如此反复，直到达到“不动点”（我们的计算得出了答案！）。
+    这确实是元循环的。
+[fn:26] 值得注意的是， ~quote~ 的特性让我们无需解析文本语法就能编写解释器：我们只需引用数据结构即可！
+    事实上，大多数编程语言设计的教科书都过度关注编程语言的文本解析，给人一种错觉，即语言结构的重要部分与表层语法相关，
+    但这从本质上来说并非如此。任何可以想象的编程语言范式都可以用 ~Scheme~ 所使用的简单符号表达式表示来实现。
+    代码和数据看似相距甚远，实则不然。当然，如果我们想将其打造成一门实用的编程语言，就需要能够从磁盘的源文件中读取程序。
+    ~read~ 是 ~Scheme~ （几乎所有 ~Lisp~ 语言）的内置功能，因此这项工作总体上已经为我们完成了。不过，在 ~Scheme~ 中实现 ~read~ 功能也很简单，
+    所需的代码量与我们实现 ~evaluate~ 功能时大致相当。
+[fn:27] 你不仅来到了最后一部分，还来到了最后一个脚注！至此，我们不妨认为你对这类内容有着真正的热情，因此我们会为你提供更多资源：
+    * 要了解评估器（比如我们上面编写的这个）的工作原理及其历史，更多内容可参考 ~William Byrd~ 精彩的演讲：[[https://www.youtube.com/watch?v=OyfBQmvr2Hc][The Most Beautiful Program Ever Written]]
+    * 《计算机程序的构造与解释》（也被称为 ~SICP~ 或“巫师书”）包含了我们在此讲解的几乎所有内容的扩展版本，
+      还介绍了如何构建事件循环、简单的约束求解器、此类求值器、逻辑编程求值器，以及能生成更高效机器码的编译器。
+      理解计算本质的最佳方式莫过于学习 ~SICP~ 。学习它的一个好方法是在阅读原文和观看 ~20~ 世纪 ~80~ 年代的讲座之间切换。
+      ~SICP~ 有纸质书版本，也有可在 ~Emacs~ 中便捷阅读的 ~info~ 手册，还有 ~HTML~ 版本，但如果你打算通过网页浏览器阅读 ~SICP~ ，我们强烈推荐[[https://sarabander.github.io/sicp/html/][这个版本]]。
+    * [[https://mitpress.mit.edu/books/little-schemer-fourth-edition][《 ~The Small Schemer~ 》]]是一本风格轻松对话式的趣味书籍。书中蕴含诸多实用知识，兼具奇幻的谜题质感，还配有赏心悦目的插图。
+      该系列还有许多后续书籍，对其他计算机科学主题展开了深入探讨。
+    * [[https://mitpress.mit.edu/books/software-design-flexibility][面向灵活性的软件设计]]汲取了《计算机程序的构造和解释》（ ~SICP~ ）中的诸多理念，并在此基础上进一步拓展。
+      在很多方面，它可以被视为《计算机程序的构造和解释》的真正续作。
+    * 更不用说直接使用 ~Scheme~ 或其他 ~Lisp~ 方言也是了解它们的绝佳方式。为 [[https://spritely.institute/][Spritely]] 或 [[https://guix.gnu.org/][Guix]] 做贡献是将这些技能付诸实践的两种绝佳方式！
+
+    享受这段旅程吧！
