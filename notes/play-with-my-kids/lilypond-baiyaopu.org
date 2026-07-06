@@ -123,5 +123,5 @@
 
 ** 参考(Reference)
 
-- [fn:1] https://www.yuque.com/qqbunny/lilypond-reference
+[fn:1] https://www.yuque.com/qqbunny/lilypond-reference
 
