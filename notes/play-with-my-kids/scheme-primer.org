@@ -328,7 +328,7 @@ Scheme demonstrates that a very small number of rules for forming expressions, w
       [<ALTERNATE>])
 #+end_src
 
-~<ALTERNATE>~ 周围的方括号表示该项为可选项。[fn:6]
+~<ALTERNATE>~ 周围的方括号表示该项为可选项[fn:6]。
 
 那么，我们可以写一个有趣的函数，兴奋地报告一个对象是不是字符串：
 
@@ -1469,13 +1469,6 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 我们保证你将通过本教程学会 ~Scheme~ 。如果你已经学到这里，你收获的远不止于此：你不再只是 ~Scheme~ 的使用者，
 而是 ~Scheme~ 的构建者。这份力量属于你！[fn:27]
 
-** 参考教程(Reference Guides)
-
-- [[https://klose911.github.io/html/scheme/tutorial/slt.html][Scheme入门教程]]
-- [[https://deathking.github.io/yast-cn/][Yet Another Scheme Tutorial]]
-- [[https://wizardforcel.gitbooks.io/teach-yourself-scheme/content/index.html][Scheme语言简明教程]]
-- [[https://pkold.com/docs/guile/01-introduction/][Guile/Scheme编程教程]]
-
 ** 嵌入 Guile 环境(Embed Guile Interpreter)
 
 实际上 ~Guile~ 非常适合作为大系统的嵌入式脚本，这个章节介绍一下如何通过 ~Guile~ 来扩展你的 ~C++~ 程序。
@@ -1647,6 +1640,13 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
      just test
    #+end_src
 
+** 参考教程(Reference Guides)
+
+- [[https://klose911.github.io/html/scheme/tutorial/slt.html][Scheme入门教程]]
+- [[https://deathking.github.io/yast-cn/][Yet Another Scheme Tutorial]]
+- [[https://wizardforcel.gitbooks.io/teach-yourself-scheme/content/index.html][Scheme语言简明教程]]
+- [[https://pkold.com/docs/guile/01-introduction/][Guile/Scheme编程教程]]
+
 ** 脚注
 
 [fn:1] ~R5RS~ 指的是《算法语言 ~Scheme~ 的修订（第 5 版）报告》。它并非 ~Scheme~ 的唯一版本，但它篇幅短小、简洁且极简。
@@ -1671,12 +1671,10 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
     传统上， ~Scheme~ 的谓词会附加一个 ~?~ 后缀。 ~?~ 后缀通常读作“哈？”，因此 ~“string-huh?”~ 就是对应的读法。
     在其他一些 ~Lisp~ 方言中，会采用与 ~Scheme~ 中 ~?~ 用法相同的 ~-p~ 后缀。
 [fn:6] 在标准方案中， ~<ALTERNATE>~ 并非技术上必需。不过，许多方案默认提供了一个名为 ~when~ 的独立过程，其形式如下：
-
     #+begin_src scheme
       (when <TEST>
         <BODY> ...)
     #+end_src
-
     在 ~Racket~ 中，不允许出现没有 ~<ALTERNATE>~ 的 ~if~ 表达式（称为“单分支 ~if~ ”），
     即便在 ~Racket~ 之外的语言中，这种情况下也更推荐使用 ~when~ 。这同样是因为在纯函数式编程语言中，
     不存在调用条件表达式却让其中一个分支返回无意义值的情况。换句话说，只有在产生副作用时，
@@ -1684,7 +1682,6 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
     我们将在论 ~Scheme~ （以及一般意义上的 ~Lisp~ 语言）的可扩展性中重新探讨 ~when~ ，包括如何亲手实现它。
 [fn:7] 诚然，在这一点上， ~Lisp~ 的前缀表示法不如中缀表示法，因为大于号/小于号的尖括号表示法本身就带有视觉上的大小感。
     一些 ~Scheme~ 方言支持 ~SRFI-105~ ：花括号中缀表达式，这种表示法读起来会稍微容易一些。对比一下：
-
     #+begin_src scheme
       REPL> (> 8 9)
       ; => #f
@@ -1695,9 +1692,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
       REPL> (>= 8 8)
       ; => #t
     #+end_src
-
     对比
-
     #+begin_src scheme
       REPL> {8 > 9}
       ; => #f
@@ -1711,7 +1706,6 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 [fn:8] 正如我们将在《论 ~Scheme~ （以及一般意义上的 ~Lisp~ ）的可扩展性》中看到的， ~Scheme~ 允许我们实现新的语法形式。
     ~Scheme~ 的实现仅需一种基础的条件语法形式，因为 ~if~ 可以写成cond的简化版本，而 ~cond~ 则可以写成一系列嵌套的 ~if~ 语句。
 [fn:9] 计算机科学中最不起眼的脚作出现在杰拉尔德·杰伊·萨斯曼与阿列克谢·拉杜尔所著的《传播者的艺术》一书中，书中仅写道：
-
     #+begin_example
     Equality is a tough subject
 
@@ -1728,7 +1722,6 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
     * 《 ~LISP~ 发展史》 作者：保罗·麦克琼斯
 [fn:12] 由于 ~car~ 和 ~cdr~ 属于这类“历史遗留细节”，人们很想用更好的名称来替换它们。
     如果只是使用列表， ~first~ 和 ~rest~ 是非常合适的别名：
-
     #+begin_src scheme
       REPL> (first '(a b c))
       ; => a
@@ -1742,7 +1735,6 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 [fn:13] 关于 ~cons~ 还有很多可以讲，它是“绝妙的”（此外，若想培养对递归的直观感知，可阅读 [[http://f.javier.io/public/books/The%20Little%20Schemer%204th%20Ed.pdf][The Little Schemer]] 。
 [fn:14] 在 ~make-goldilocks~ 过程中，我们创建了一个名为 ~inner~ 的过程。虽然在这里使用 ~lambda~ 表达式在技术上没有问题，
     但从 ~(make-goldilocks 10 30)~ 隐式返回的过程将是匿名的，这会让人更难理解它的实际功能。
-
     #+begin_src scheme
       REPL> (make-goldilocks 10 30) ;; 使用 lambda
       ; => #<procedure 78d86f615b80 at <unknown port>:27:2 (n)>
@@ -1762,7 +1754,6 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
 [fn:18] 由于 ~Lisp~ 的抽象语法树采用与用户编程时相同的数据结构来编写，并且在其表面语法中以相同的结构直观呈现，
     因此它被称为同像性。同像性是 ~Lisp~ 最显著的特征之一，这也是其具备高度可扩展性的重要原因。
 [fn:19] 实际上， ~define-syntax-rule~ 本身就是语法糖。以下代码是等价的：
-
     #+begin_src scheme
       (define-syntax-rule (when test body ...)
         (if test
@@ -1774,9 +1765,7 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
            (if test
                (begin body ...)))))
     #+end_src
-
     事实上，我们可以基于 ~define-syntax-rule~ 由 ~define-syntax~ 和 ~syntax-rules~ 构建而成：
-
     #+begin_src scheme
       (define-syntax define-syntax-rule
         (syntax-rules ()
@@ -1786,7 +1775,6 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
                ((id pattern ...)
                 template))))))
     #+end_src
-
     大多数 ~Scheme~ 中还有许多其他的语法转换语法形式，而且不同 ~Scheme~ 实现之间的这些形式差异很大，
     不过 ~define-syntax~ 和 ~syntax-rules~ 是 ~Scheme~ 标准的一部分。
 [fn:20] 给读者的一个有趣练习：尝试实现一个 ~C~ 风格的 ~for~ 循环！
@@ -1801,7 +1789,6 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
           printf("i is: %d\n", i);
       }
     #+end_src
-
     尝试让以下代码正常运行：
     #+begin_src scheme
       (for ((i 0) (< i 10) (+ i 2))
@@ -1823,7 +1810,6 @@ As Simon Peyton Jones, a well-known functional programmer, likes to say, "All yo
     而“动态作用域”则是“作用域由调用者定义”（以及其上级调用者，沿着当前调用栈一路向上），它是隐式的，同时也是 **环境性** 的，
     包括环境权限层面的环境性，这使得动态作用域会面临更严重的安全问题（且并非巧合，它与访问控制列表系统的相似性也更高）。
 [fn:25] 啊哈！现在我们就能明白元循环的含义了！下面这幅 ~ASCII~ 艺术图是对 ~SICP~ 中出现的元循环图示的致敬：
-
     #+begin_example
     \'.
      \ '.                      .-****-.
