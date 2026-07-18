@@ -1,0 +1,14 @@
+#+title: 逸剑风云决
+#+date: 2026/07/10
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** 楔子(Prologue)
+
+跟孩子一起玩游戏，但是 =Steam= 上的版本是没有配音的。所以就想着自己搭建一个实时识别屏幕的文字，之后生成语音播报出来，
+自动配音了，虽然赶不上声优老师的效果，但勉强够用应该是可以的。
+
+** 参考
+
+- [[https://github.com/xinnan-tech/xiaozhi-esp32-server/pull/379][xiaozhi-esp32-server:ASR增加sherpa-onnx模型]]
+
+
