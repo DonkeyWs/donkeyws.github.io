@@ -48,5 +48,15 @@
   rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-apple-ios-sim
 #+end_src
 
-** 
+** 创建项目
+
+** 修改默认图标
+
+~Tauri~ 创建的应用更换图标需要如下步骤[fn:1]：
+
+1. 准备一个 ~512x512~ 像素的带有 ~RGBA~ 通道的 ~PNG~ ，放到项目根目录，名称为 ~app-icon.png~ 。
+2. 运行 ~npm run tauri icon~ 或者 ~cargo tauri icon~ 生成新的图标。
+
+
+[fn:1] 图标配置：https://v2.tauri.app/es/develop/icons
 

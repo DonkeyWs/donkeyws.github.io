@@ -44,7 +44,10 @@
 之后就可以安装 ~zephyr~ 转述的工具了：
 
 #+begin_src bash
+  # Linux 上推荐安装到 user 对应的库目录下
   pip3 install --user -U west
+  # macOS 下通过 macport 安装 python13，之后可以通过 pip install -U west 安装
+  pip install -U west
   west --version
 #+end_src
 
