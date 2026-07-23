@@ -1,0 +1,75 @@
+#+title: LLVM MLIR
+#+date: 2026/07/21
+#+author: Donkye <anjingyu_ws@foxmail.com>
+
+** Setup
+
+Fetch the latest version of ~LLVM~ source code:
+
+#+begin_src bash
+  #!/usr/bin/env bash
+  #
+  # Fetch the latest stable LLVM source code
+  #
+  # Author: donkey <anjingyu_ws@foxmail.com>
+
+  function fetch()
+  {
+      local _REPO_URL="https://mirrors.tuna.tsinghua.edu.cn/git/llvm-project.git"
+      local _LATEST_TAG_LINE=$(git ls-remote --refs -t --sort=-v:refname $_REPO_URL | grep "/llvmorg-[0-9]\+.[0-9]\+.[0-9]\+$" | head -n 1 | cut -f 2)
+      local _BRANCH=$(echo "${_LATEST_TAG_LINE}" | cut -d "/" -f 3)
+      git clone --recursive --branch ${_BRANCH} --depth 1 ${_REPO_URL}
+  }
+
+  fetch
+#+end_src
+
+Build the ~MLIR~:
+
+#+begin_src bash
+  #!/usr/bin/env bash
+  #
+  # Build the latest stable LLVM source code for MLIR
+  #
+  # Author: donkey <anjingyu_ws@foxmail.com>
+
+  readonly CUR_DIR=$(cd `dirname $0`; pwd)
+
+  function build()
+  {
+      if [ ! -d "${CUR_DIR}/llvm-project" ]; then
+          echo "[ERROR] Please fetch the source code of LLVM via fetch.sh"
+          exit -1
+      fi
+
+      pushd ${CUR_DIR}/llvm-project 1>/dev/null 2>&1
+      mkdir .build
+
+      # CC=clang CXX=clang++
+      cmake -G Ninja \
+          -S llvm -B .build \
+          -DLLVM_ENABLE_PROJECTS=mlir \
+          -DLLVM_BUILD_EXAMPLES=ON \
+          -DLLVM_TARGETS_TO_BUILD="Native;NVPTX;AMDGPU" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DLLVM_ENABLE_ASSERTIONS=ON
+      # Using clang and lld speeds up the build, we recommend adding:
+      #  -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DLLVM_ENABLE_LLD=ON
+      # CCache can drastically speed up further rebuilds, try adding:
+      #  -DLLVM_CCACHE_BUILD=ON
+      # Optionally, using ASAN/UBSAN can find bugs early in development, enable with:
+      # -DLLVM_USE_SANITIZER="Address;Undefined"
+      # Optionally, enabling integration tests as well
+      # -DMLIR_INCLUDE_INTEGRATION_TESTS=ON
+
+      if [ $? -eq 0 ]; then
+          cmake --build .build --config Release --target check-mlir
+      else
+          echo "[ERROR] Failed to run CMake for llvm-project"
+      fi
+      popd 1>/dev/null 2>&1
+  }
+
+  build $@
+#+end_src
+
