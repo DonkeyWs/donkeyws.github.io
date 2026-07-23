@@ -1,0 +1,75 @@
+#+title: Async Rust
+#+date: 2026/07/21
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** Prologue
+
+The best way to understand a technique is to implement it by yourself from scratch.
+I'm wondering the implementation of Rust ~async~ runtimes, and want to dive into,
+so I decided to implement one from scratch.
+
+** Start From a ~Future~
+
+#+begin_src rust
+  use std::{
+      future::Future,
+      sync::{
+          mpsc::{sync_channel, Receiver, SyncSender},
+          Arc, Mutex,        
+      },
+      task::{Context, Poll, Waker},
+      thread,
+      time::Duration,
+  };
+
+  use futures::{
+      future::{BoxFuture, FutureExt},
+      task::{waker_ref, ArcWake},
+  };
+
+  struct SharedState {
+      completed: bool,
+      waker: Option<Waker>,
+  }
+
+  pub struct TimerFuture {
+      shared_state: Arc<Mutex<SharedState>>,
+  }
+#+end_src
+
+#+begin_src rust
+  impl Future for TimerFuture {
+      type Output = ();
+      fn poll(
+          self: std::pin::Pin<&mut Self>,
+          cx: &mut std::task::Context<'_>,
+      ) -> std::task::Poll<Self::Output> {
+          let mut shared_state = self.shared_state.lock().unwrap();
+          if shared_state.completed {
+              return Poll::Ready(());
+          }
+          shared_state.waker = Some(cx.waker().clone());
+          return Poll::Pending;
+      }
+  }
+
+  impl TimerFuture {
+      fn new(duration: Duration) -> Self {
+          let shared_state = Arc::new(Mutex::new(SharedState {
+              completed: false,
+              waker: None,
+          }));
+          let thread_shared_state = Arc::clone(&shared_state);
+          thread::spawn(move || {
+              thread::sleep(duration);
+              let mut shared_state = thread_shared_state.lock().unwrap();
+              shared_state.completed = true;
+              if let Some(waker) = shared_state.waker.take() {
+                  waker.wake();
+              }
+          });
+          TimerFuture { shared_state }
+      }
+  }
+#+end_src
+

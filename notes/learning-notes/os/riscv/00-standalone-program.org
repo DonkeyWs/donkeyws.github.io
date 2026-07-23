@@ -1,0 +1,152 @@
+#+title: RISC-V Standalone Program
+#+date: 2026/07/23
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** Progolue
+
+Before the OS journal, let's have a taste of freestanding C program -- an program without OS and LibC, can be ran on the hardware directly.
+
+** Standalone Program
+
+~main.c~:
+
+#+begin_src c
+  #include <stdint.h>
+
+  // QEMU RISC-V virt 平台串口MMIO寄存器地址（官方定义）
+  #define UART0_BASE 0x10000000
+  // 串口发送保持寄存器偏移
+  #define UART_THR 0
+
+  // 裸机启动函数：naked属性避免编译器生成额外栈操作指令，强制放在.startup段
+  __attribute__((naked, section(".startup")))
+  void _start(void) {
+      __asm__ volatile (
+          "li sp, 0x80010000\n"    // 栈顶地址 = 0x80000000 + 64KB = 0x80010000
+          "call main\n"          // 跳转到主函数
+          "j .\n"                // main返回后死循环
+      );
+  }
+
+  // 串口发送单个字符
+  void uart_putc(char c) {
+      ,*(volatile uint8_t*)(UART0_BASE + UART_THR) = c;
+  }
+
+  // 串口发送字符串
+  void uart_puts(const char *s) {
+      while (*s) {
+  	uart_putc(*s++);
+      }
+  }
+
+  // 主函数
+  int main(void) {
+      uart_puts("Hello RISC-V Baremetal!\n");
+      uart_puts("Running on QEMU RISC-V virt platform\n");
+      while(1); // 裸机程序不退出，死循环
+  }
+#+end_src
+
+~linker.ld~:
+
+#+begin_src ldscript
+  OUTPUT_FORMAT("elf64-littleriscv")  /* 输出64位小端RISC-V ELF文件 */
+  OUTPUT_ARCH(riscv)                  /* 目标架构RISC-V */
+  ENTRY(_start)                       /* 入口点为_start函数 */
+
+  /* QEMU virt机器内存布局：RAM起始地址0x80000000，默认分配128MB */
+  MEMORY
+  {
+      RAM (rwx) : ORIGIN = 0x80000000, LENGTH = 128M
+  }
+
+  SECTIONS
+  {
+      /* 启动代码放在最前面，保证从flash/内存起始位置执行 */
+      .startup : {
+          KEEP(*(.startup))
+      } > RAM
+
+      /* 代码段 */
+      .text : {
+          ,*(.text .text.*)
+      } > RAM
+
+      /* 只读数据段 */
+      .rodata : {
+          ,*(.rodata .rodata.*)
+      } > RAM
+
+      /* 已初始化数据段 */
+      .data : {
+          ,*(.data .data.*)
+      } > RAM
+
+      /* 未初始化数据段 */
+      .bss : {
+          ,*(.bss .bss.*)
+          ,*(COMMON)
+      } > RAM
+  }
+#+end_src
+
+~build.sh~:
+
+#+begin_src bash
+  # Build the C source code to .o target file
+  clang --target=riscv64-unknown-elf \
+      -march=rv64gc \
+      -mabi=lp64d \
+      -ffreestanding \
+      -nostdlib \
+      -mno-relax \
+      -O2 \
+      -c main.c -o main.o
+
+  # Link the .o files to an ELF file
+  clang --target=riscv64-unknown-elf \
+      -march=rv64gc \
+      -mabi=lp64d \
+      -nostdlib \
+      -mno-relax \
+      -T linker.ld \
+      -o firmware.elf main.o
+#+end_src
+
+#+begin_note
+Tested on Ubuntu 24.04 with ~clang-18~ and ~clang-19~.
+#+end_note
+
+Build via the following command:
+
+#+begin_src bash
+  chmod +x build.sh
+  ./build.sh
+#+end_src
+
+Run this standalone program via ~QEMU~:
+
+#+begin_src bash
+  # -machine virt        # use virt platform
+  # -bios none           # disable BIOS, load our firmware directly
+  # -kernel firmware.elf # load the ELF
+  # -nographic           # disable GUI, output via serial port
+  # -serial mon:stdio    # redirect serial to stdio
+  qemu-system-riscv64 \
+      -machine virt \
+      -bios none \
+      -kernel firmware.elf \
+      -nographic \
+      -serial mon:stdio
+#+end_src
+
+You will get the following output in terminal:
+
+#+begin_example
+Hello RISC-V Baremetal!
+Running on QEMU RISC-V virt platform
+#+end_example
+
+Then you can enter ~Ctrl+q,x~ to quit this ~QEMU~ instance.
+
