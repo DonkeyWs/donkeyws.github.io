@@ -8,6 +8,10 @@ Before the OS journal, let's have a taste of freestanding C program -- an progra
 
 ** Standalone Program
 
+#+begin_note
+The following program is built with ~Clang~ and corresponding toolchain, so you should install ~clang~ and ~ld.lld~: ~sudo apt install clang lld~.
+#+end_note
+
 ~main.c~:
 
 #+begin_src c
@@ -36,7 +40,7 @@ Before the OS journal, let's have a taste of freestanding C program -- an progra
   // 串口发送字符串
   void uart_puts(const char *s) {
       while (*s) {
-  	uart_putc(*s++);
+          uart_putc(*s++);
       }
   }
 
@@ -96,22 +100,33 @@ Before the OS journal, let's have a taste of freestanding C program -- an progra
 #+begin_src bash
   # Build the C source code to .o target file
   clang --target=riscv64-unknown-elf \
-      -march=rv64gc \
-      -mabi=lp64d \
-      -ffreestanding \
-      -nostdlib \
-      -mno-relax \
-      -O2 \
-      -c main.c -o main.o
+        -march=rv64gc \
+        -mabi=lp64d \
+        -ffreestanding \
+        -nostdlib \
+        -mno-relax \
+        -O2 \
+        -c main.c -o main.o
 
   # Link the .o files to an ELF file
   clang --target=riscv64-unknown-elf \
-      -march=rv64gc \
-      -mabi=lp64d \
-      -nostdlib \
-      -mno-relax \
-      -T linker.ld \
-      -o firmware.elf main.o
+        -march=rv64gc \
+        -mabi=lp64d \
+        -nostdlib \
+        -mno-relax \
+        -T linker.ld \
+        -o firmware.elf main.o
+
+  # You can combine above two commands to one
+  clang --target=riscv64-unknown-elf \
+        -march=rv64gc \
+        -mabi=lp64d \
+        -ffreestanding \
+        -nostdlib \
+        -mno-relax \
+        -O2 \
+        -T linker.ld \
+        -o firmware.elf main.c
 #+end_src
 
 #+begin_note
@@ -149,4 +164,45 @@ Running on QEMU RISC-V virt platform
 #+end_example
 
 Then you can enter ~Ctrl+q,x~ to quit this ~QEMU~ instance.
+
+A effective way to build and test is to create ~justfile~ and use ~just~ command to build and test.
+
+~justfile~:
+
+#+begin_src justfile
+  root := justfile_directory()
+
+  [private]
+  @default:
+    @just --list
+
+  @build:  
+    cd {{root}} && clang --target=riscv64-unknown-elf \
+        -march=rv64gc \
+        -mabi=lp64d \
+        -ffreestanding \
+        -nostdlib \
+        -mno-relax \
+        -O2 \
+        -T linker.ld \
+        -o firmware.elf main.c
+
+  @run:
+    cd {{root}} && qemu-system-riscv64 \
+        -machine virt \
+        -bios none \
+        -kernel firmware.elf \
+        -nographic \
+        -serial mon:stdio
+
+  @clean:
+    cd {{root}} && rm -rf firmware.elf main.o
+#+end_stc
+
+So you can build and test:
+
+#+begin_src bash
+  just build
+  just run
+#+end_src
 
