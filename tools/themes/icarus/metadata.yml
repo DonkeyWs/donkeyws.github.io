@@ -1,0 +1,41 @@
+# ============================================================
+#  Icarus Pandoc Theme - Global Metadata
+#  Usage: pandoc post.md --metadata-file=metadata.yml ...
+# ============================================================
+
+# Site
+site-title: "My Icarus Blog"
+site-url: "https://example.com"
+logo: ""
+
+# Author
+author: "Your Name"
+author-bio: "A simple, delicate, and modern blog."
+avatar: ""
+email: "you@example.com"
+
+# Social
+github-url: "https://github.com/yourname"
+twitter-url: ""
+rss-url: ""
+
+# Navbar links
+nav-home: "index.html"
+nav-home-text: "Home"
+nav-archives: "archives.html"
+nav-archives-text: "Archives"
+nav-categories: ""
+nav-categories-text: "Categories"
+nav-tags: "tags.html"
+nav-tags-text: "Tags"
+nav-about: "about.html"
+nav-about-text: "About"
+
+# License
+copyright: ""
+year: "2026"
+license: "CC BY-NC-SA 4.0"
+license-url: "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+
+# Language
+lang: "zh-CN"

@@ -144,12 +144,11 @@ function build_one_file()
         _OUTPUT_FILE="$_OUTPUT_DIR/index.html"
     fi
 
-    if [ ! -f "$_THEME_DIR/styling.css" ]; then
-        error "Required file missing: ${yellow}$_THEME_DIR/styling.css${normal}"
-        exit 128
-    fi
+    local declare _OPTS=("--resource-path=.:${CUR_DIR}" "--mathjax=${CUR_DIR}/mathjax/tex-mml-chtml.min.js" "--to=html5")
 
-    local declare _OPTS=("--css=/static/$(basename $_THEME_DIR)/styling.css" "--resource-path=.:${CUR_DIR}" "--mathjax=${CUR_DIR}/mathjax/tex-mml-chtml.min.js" "--to=html5")
+    if [ -f "$_THEME_DIR/styling.css" ]; then
+        _OPTS+=("--css=/static/$(basename $_THEME_DIR)/styling.css")
+    fi
 
     if [ -f "$_THEME_DIR/template.html" ]; then
         _OPTS+=("--template=$_THEME_DIR/template.html")
@@ -165,6 +164,10 @@ function build_one_file()
 
     if [ -f "$_THEME_DIR/footer.html" ]; then
         _OPTS+=("--include-after-body=$_THEME_DIR/footer.html")
+    fi
+
+    if [ -f "$_THEME_DIR/metadata.yml" ]; then
+        _OPTS+=("--metadata-file=$_THEME_DIR/metadata.yml")
     fi
 
     pushd $_INPUT_DIR 1>/dev/null 2>&1
@@ -412,7 +415,7 @@ function main()
         cp -rf "$MATHJAX_FONT_DIR" "$_OUTPUT_DIR"
     fi
 
-    if [ ! -d "$_OUTPUT_DIR/static/$_THEME" ]; then
+    if [ ! -d "$_OUTPUT_DIR/static/$_THEME" ] && [ -f "$CUR_DIR/themes/$_THEME/styling.css" ]; then
         info "Copying the style sheet required by ${green}$_THEME theme${normal} ..."
         mkdir -p "$_OUTPUT_DIR/static/$_THEME"
         cp -rf "$CUR_DIR/themes/$_THEME/styling.css" "$_OUTPUT_DIR/static/$_THEME"
