@@ -105,8 +105,6 @@
 
 *** 从小星星开始
 
-
-
 #+begin_src lilypond
   \version "2.24.4"
 
@@ -132,9 +130,57 @@
   }
 #+end_src
 
-** 简谱(jianpu-ly)
+这里列出一些打谱常用的基本知识以及 ~lilypond~ 的用法，详细的教程还是参考官方教程更合适。
 
-虽然孩子习惯使用五线谱，但是作为菜鸡的我还是习惯简谱，很巧的是，有大佬开源可以通过 ~lilypond~ 生成简谱的插件，安装也很简单：
+先给出一个比较简单直观的文件结构，依此来认识下 ~lilypond~ 乐谱文件的基本结构：
+
+#+begin_src lilypond
+  \version "2.24.4"
+
+  \score {
+    \new Staff {
+      \clef treble
+      \key c \major
+      \time 4/4
+      \relative c' {
+        c4 d4 e4 f4 |
+        g1 |
+      }
+    }
+    \layout { }
+  }
+#+end_src
+
+如上，一份完整的乐谱文件由三个部分组成： =版本声明= + =音乐表达式= + =（可选）排版块= 。
+
+- **`\new Staff`**：新建一行五线谱（谱表）。
+- **`\clef treble`**：高音谱号（G 谱号）。
+- **`\key c \major`**：C 大调（无升降号）。
+- **`\time 4/4`**：4/4 拍（每小节 4 拍，以四分音符为一拍）。
+- **`\relative c'`**：相对音高模式，以中央 C 为基准，后续音符自动取「离前一个音最近」的八度（详见 1.4 节）。
+- **`\layout { }`**：空排版块，表示「输出 PDF」。
+
+#+begin_src lilypond
+  \version "2.24.4"
+
+  \header {
+    title = "Twinkle, Twinkle, Little Star"
+    composer = "Traditional"
+  }
+
+  melody = \relative c' {
+    c4 c4 g4 g4
+    a4 a4 g2
+    f4 f4 e4 e4
+    d4 d4 c2
+  }
+
+  \score {
+    \new Staff \melody
+    \layout { }
+    \midi { }
+  }
+#+end_src
 
 #+begin_src bash
   pip install jianpu-ly
