@@ -1,0 +1,138 @@
+#+title: Build Chimera Linux From Nothing
+#+date: 2026/08/12
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** Prologue
+
+I am a fan of Linux Distributions, I tried MANY distributions in daily work, such as Ubuntu/Fedora/RedHat/Arch/NixOS etc.
+I cannot wait to try out this incredible distro when I heard the ~Chimera Linux~ which is based on ~FreeBSD~ userland.
+
+** Steps
+
+I decide to build it from SCRATCH (from source) with the following steps.
+
+*** Fetch Latest Kernel
+
+The first step is fetch and build the *LATEST* kernel, I always use the following helper script:
+
+#+begin_src bash
+  #!/usr/bin/env bash
+  #
+  # Prepare the linux kernel source code
+  #
+  # Author: donkey <anjingyu_ws@foxmail.com>
+
+  set -ueo pipefail
+
+  exec 3>&1
+
+  readonly _CUR_DIR=$(cd $(dirname "$0"); pwd)
+
+  readonly normal="\e[0m"
+  readonly red="\e[0;31m"
+  readonly green="\e[0;32m"
+  readonly yellow="\e[0;33m"
+  readonly magenta="\e[0;35m"
+  readonly cyan="\e[0;36m"
+
+  function el()
+  {
+      printf "%b\n" "$@" >&3
+  }
+
+  function error()
+  {
+      printf "%b\n" "[${red}E${normal}] $@" >&3
+  }
+
+  function info()
+  {
+      printf "%b\n" "[${cyan}I${normal}] $@" >&3
+  }
+
+  #################################################
+  # Download specify kernel source from
+  # tsinghua mirror website.
+  # Parameters:
+  #   $1 - Branch name string, format: <major>.<minor>[.<patch>]
+  function fetch_kernel()
+  {
+      # Base repository settings
+      local _REPO_BASE="https://mirror.tuna.tsinghua.edu.cn"
+      local _KERNEL_REPO_BASE="kernel"
+      local _MAJOR_VERSION=$(echo $1 | cut -d'.' -f1)
+      local _BASE_BRANCH="v${_MAJOR_VERSION}.x"
+      if [ ${_MAJOR_VERSION} -lt 3 ]; then
+          local _MINOR_VERSION=$(echo $1 | cut -d'.' -f2)
+          _BASE_BRANCH="v${_MAJOR_VERSION}.${_MINOR_VERSION}"
+      fi
+
+      local _KERNEL_NAME="linux-${1}.tar.xz"
+      if [ ! -f ${_KERNEL_NAME} ]; then
+          local _KERNEL_URL="${_REPO_BASE}/${_KERNEL_REPO_BASE}/${_BASE_BRANCH}/${_KERNEL_NAME}"
+          info "${cyan}  ==> ${green}Downloading the tarball${normal}(${magenta}linux-${1}.tar.xz${normal})"
+          curl -#LSf ${_KERNEL_URL} -o ${_KERNEL_NAME}
+      fi
+
+      if [ -f ${_KERNEL_NAME} ] && [ ! -d "linux-${1}" ]; then
+          info "${cyan}  ==> ${green}Extracting the tarball to ${yellow}linux-${1}${normal})"
+          tar -Jxf ${_KERNEL_NAME}
+      fi
+  }
+
+  function usage()
+  {
+      el "Usage:"
+      el "  ${green}-h${normal}, ${green}--help${normal}                 Show this help message."
+      el "  ${green}    --version [VERSION]${normal}    Spedify the kernel version, default: latest stable."
+  }
+
+  function main()
+  {
+      local _LINUX_KERNEL_VERSION=""
+
+      # Parse the options
+      while [ $# -ne 0 ]; do
+          case "$1" in
+              -h|--help)
+                  usage
+                  exit 0
+                  ;;
+              --version)
+                  shift
+                  _LINUX_KERNEL_VERSION="$1"
+                  ;;
+              *)
+                  error "Unknown option: ${red}${1}${normal}"
+                  exit 10
+                  ;;
+          esac
+          shift
+      done
+
+      if [ -z "${_LINUX_KERNEL_VERSION}" ]; then
+          local _REPO="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git"
+          local _LATEST_TAG=$(git ls-remote --refs -t --sort=-v:refname $_REPO | grep "/v[0-9]\+.[0-9]\+\(.[0-9]\+\)*$" | head -n 1 | cut -f 2 | cut -d '/' -f 3)
+          _LINUX_KERNEL_VERSION="${_LATEST_TAG:1:${#_LATEST_TAG}}"
+      fi
+
+      info "${cyan}--> ${green}Prepare Linux Kernel${normal}(${yellow}${_LINUX_KERNEL_VERSION}${normal})"
+      fetch_kernel "${_LINUX_KERNEL_VERSION}"
+  }
+
+  # If current script is not being sourced
+  if [[ "$BASH_SOURCE" = "$0" ]]; then
+      main $@
+  fi
+#+end_src
+
+*** Build the Kernel
+
+Because ~Chimera Linux~ is based on ~musl~ and ~LLVM~, so you need a ~musl~ native environment to build it.
+Here is a easy way to prepare this environment via docker, ~Void Linux~ or ~Chimera Linux~ itself, I choose ~Chimera Linux~ container.
+
+#+begin_src bash
+  docker pull chimeralinux/chimera:latest
+#+end_src
+
+

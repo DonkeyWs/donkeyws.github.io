@@ -101,9 +101,40 @@
 
 有大佬准备了比较全面的[[https://www.yuque.com/qqbunny/lilypond-reference][lilypond 中文参考手册]][fn:1]，相当 ~NICE~ ，官方的参考手册很长，有 =900+= 页。
 
+笔者这里对 ~lilypond~ 做必要的入门介绍，也是笔者自己如何学习 ~lilypond~ 打谱的过程。
+
+*** 从小星星开始
+
+
+
+#+begin_src lilypond
+  \version "2.24.4"
+
+  \header {
+    title = "Twinkle, Twinkle, Little Star"
+    composer = "Traditional"
+  }
+
+  melody = \relative c'' {
+    \clef treble
+    \key c \major
+    \time 4/4
+    c4 c4 g'4 g4 |
+    a4 a4 g2 |
+    f4 f4 e4 e4 |
+    d4 d4 c2 |
+  }
+
+  \score {
+    \new Staff \melody
+    \layout { }
+    \midi { }
+  }
+#+end_src
+
 ** 简谱(jianpu-ly)
 
-虽然孩子习惯使用五线谱，但是作为菜鸡的我还是习惯简谱，很巧的时候，有大佬开源可以通过 =lilypond= 生成简谱的插件，安装也很简单：
+虽然孩子习惯使用五线谱，但是作为菜鸡的我还是习惯简谱，很巧的是，有大佬开源可以通过 ~lilypond~ 生成简谱的插件，安装也很简单：
 
 #+begin_src bash
   pip install jianpu-ly
