@@ -135,4 +135,87 @@ Here is a easy way to prepare this environment via docker, ~Void Linux~ or ~Chim
   docker pull chimeralinux/chimera:latest
 #+end_src
 
+Here I prepare a simple to help me maintain a reentrant environment for building ~Chimera Linux~:
+
+#+begin_src bash
+  #!/usr/bin/env bash
+  #
+  # Start the build env container
+  #
+  # Author: donkey <anjingyu_ws@foxmail.com>
+
+  set -ueo pipefail
+
+  exec 3>&1
+
+  readonly CUR_DIR=$(cd $(dirname "$0"); pwd)
+  readonly IMAGE_NAME="chimeralinux/chimera:latest"
+
+  readonly normal="\e[0m"
+  readonly red="\e[0;31m"
+  readonly green="\e[0;32m"
+  readonly yellow="\e[0;33m"
+  readonly magenta="\e[0;35m"
+  readonly cyan="\e[0;36m"
+
+  function el()
+  {
+      printf "%b\n" "$@" >&3
+  }
+
+  function error()
+  {
+      printf "%b\n" "[${red}E${normal}] $@" >&3
+  }
+
+  function info()
+  {
+      printf "%b\n" "[${cyan}I${normal}] $@" >&3
+  }
+
+  function docker_image_exists()
+  {
+      docker image inspect "$1" >& /dev/null
+  }
+
+  function docker_container_exists()
+  {
+      [[ $(docker ps -af "name=^${1}$" --format '{{.Names}}') == ${1} ]]
+  }
+
+  function main()
+  {
+      if ! docker_image_exists "${IMAGE_NAME}"; then
+          docker pull ${IMAGE_NAME}
+      fi
+
+      local _OPTS=()
+      local _WSDIR="build"
+
+      local _SUFFIX=$(echo "$PWD" | sha1sum -)
+      _SUFFIX=${_SUFFIX:0:8}
+      local _CONTAINER_NAME="chimera_${_SUFFIX}"
+
+      if docker_container_exists "$_CONTAINER_NAME"; then
+          docker exec \
+              "${_OPTS[@]}" \
+              -it "${_CONTAINER_NAME}" \
+              /bin/sh
+      else
+          docker run "${_OPTS[@]}" --privileged -it --rm --net=host --name ${_CONTAINER_NAME} -v ${PWD}:/${_WSDIR} -w /${_WSDIR} $IMAGE_NAME /bin/sh
+      fi
+  }
+
+  main "$@"
+#+end_src
+
+Next step, enter the container and prepare the build environment(install the required software stack),
+the following commands should be run in container:
+
+#+begin_src bash
+  # Update the local cache
+  apk update
+
+  apk add clang lld meson cmake
+#+end_src
 
