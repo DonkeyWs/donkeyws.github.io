@@ -126,7 +126,7 @@ The first step is fetch and build the *LATEST* kernel, I always use the followin
   fi
 #+end_src
 
-*** Build
+*** Preparation
 
 Because ~Chimera Linux~ is based on ~musl~ and ~LLVM~, so you need a ~musl~ native environment to build it.
 Here is a easy way to prepare this environment via docker, ~Void Linux~ or ~Chimera Linux~ itself, I choose ~Chimera Linux~ container.
@@ -217,9 +217,11 @@ the following commands should be run in container:
   apk update
   # Install required tools
   # BTW:
-  # - shadow: user manager package, contains useradd, passwd etc.
-  # - bubblewrap: is a low-level unprivileged sandboxing tool
-  apk add clang lld meson cmake git byacc bison flex openssl ccache less bubblewrap shadow
+  # - shadow: user manager package, contains `useradd`, `passwd` etc.
+  # - bubblewrap: is a low-level unprivileged sandboxing tool, `bwrap`
+  # - chimerautils-extra: provides some commands, such as `patch` etc.
+  # - pkgconf: provides the command `pkg-config`.
+  apk add clang lld gmake meson cmake git byacc bison flex openssl ccache less bubblewrap shadow chimerautils-extra pkgconf
 
   # Add a new non-root user
   useradd -m -s /bin/sh chimera
@@ -257,8 +259,8 @@ Check an correct the items in ~etc/config.ini~:
   ccache = yes
   ccache_dir = /build/ccache
 
-  [keys]
-  # cbuild will fill the key
+  [signing]
+  # cbuild will fill the key automatically
 #+end_src
 
 Check the config syntax:
@@ -271,7 +273,39 @@ Generate the signature for package:
 
 #+begin_src bash
   ./cbuild keygen
+
+  # Check the generated keys
+  ls etc/keys
+
+  grep '^\[signing\]' -A2 etc/config.ini
+  # Output like:
+  # [signing]
+  # # signing key name (in etc/keys) or path (absolute or relative to cports)
+  # key = your_private_key.rsa
 #+end_src
 
+Check whether the build environment is available:
 
+#+begin_src bash
+  # List all the subcommands
+  ./cbuild --help
+
+  ./cbuild lint main/apk-tools
+#+end_src
+
+If the second command has no 'error' output, that means the build environment has been ready.
+
+*** Build bootstrap
+
+#+begin_note
+All the commands will be run in container with non-root user ~chimera~.
+#+end_note
+
+Here I will build from source via ~cbuild~ stage by stage:
+
+**** Stage0: Host Toolchain
+
+#+begin_src bash
+  ./cbuild source-bootstrap 0
+#+end_src
 
