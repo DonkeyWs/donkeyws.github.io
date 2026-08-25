@@ -126,7 +126,7 @@ The first step is fetch and build the *LATEST* kernel, I always use the followin
   fi
 #+end_src
 
-*** Build the Kernel
+*** Build
 
 Because ~Chimera Linux~ is based on ~musl~ and ~LLVM~, so you need a ~musl~ native environment to build it.
 Here is a easy way to prepare this environment via docker, ~Void Linux~ or ~Chimera Linux~ itself, I choose ~Chimera Linux~ container.
@@ -215,7 +215,63 @@ the following commands should be run in container:
 #+begin_src bash
   # Update the local cache
   apk update
+  # Install required tools
+  # BTW:
+  # - shadow: user manager package, contains useradd, passwd etc.
+  # - bubblewrap: is a low-level unprivileged sandboxing tool
+  apk add clang lld meson cmake git byacc bison flex openssl ccache less bubblewrap shadow
 
-  apk add clang lld meson cmake
+  # Add a new non-root user
+  useradd -m -s /bin/sh chimera
+
+  # Change the password
+  passwd chimera
+
+  # Switch to the non-root user
+  su chimera
 #+end_src
+
+#+begin_note
+You should run the following commands via a non-root account, accoriding to the official docs, root user will result in early failure.
+#+end_note
+
+Clone the source code of build tools from ~Chimera~ official repositories:
+
+#+begin_src bash
+  git clone https://github.com/chimera-linux/cports.git
+  git clone https://github.com/chimera-linux/chimera-live.git
+#+end_src
+
+Start and enter the container, do preparation:
+
+#+begin_src bash
+  cd /build/cports
+  cp etc/config.ini.example etc/config.ini
+#+end_src
+
+Check an correct the items in ~etc/config.ini~:
+
+#+begin_src ini
+  # Check an correct the items in etc/config.ini
+  [build]
+  ccache = yes
+  ccache_dir = /build/ccache
+
+  [keys]
+  # cbuild will fill the key
+#+end_src
+
+Check the config syntax:
+
+#+begin_src bash
+  python3 -c "import configparser; c=configparser.ConfigParser(); c.read('etc/config.ini'); print('sections:', c.sections())"
+#+end_src
+
+Generate the signature for package:
+
+#+begin_src bash
+  ./cbuild keygen
+#+end_src
+
+
 
