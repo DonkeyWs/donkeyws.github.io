@@ -1,0 +1,20 @@
+#+title: Tree Sitter 简易教程
+#+date: 2026/08/30
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** 楔子
+
+这是一篇关于 ~Tree Sitter~ 技术的简易教程，主要围绕如何在实际项目中使用 ~Tree Sitter~ 完成一些实际功能。
+
+** 安装
+
+最简单的安装方法是使用 ~npm~ 或者 =cargo=:
+
+#+begin_src bash
+  npm install tree-sitter-cli
+
+  cargo install tree-sitter-cli
+#+end_src
+
+
+
