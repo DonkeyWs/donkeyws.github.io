@@ -221,7 +221,8 @@ the following commands should be run in container:
   # - bubblewrap: is a low-level unprivileged sandboxing tool, `bwrap`
   # - chimerautils-extra: provides some commands, such as `patch` etc.
   # - pkgconf: provides the command `pkg-config`.
-  apk add clang lld gmake meson cmake git byacc bison flex openssl ccache less bubblewrap shadow chimerautils-extra pkgconf
+  # - linux-headers: the headers for compilers(llvm)
+  apk add clang lld gmake meson cmake git byacc bison flex openssl ccache less bubblewrap shadow chimerautils-extra pkgconf linux-headers
 
   # Add a new non-root user
   useradd -m -s /bin/sh chimera
