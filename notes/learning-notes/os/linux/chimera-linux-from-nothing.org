@@ -309,3 +309,17 @@ Here I will build from source via ~cbuild~ stage by stage:
   ./cbuild source-bootstrap 0
 #+end_src
 
+In this stage, I failed a few times, because of downloading the dependent source packaegs, such as ~musl~.
+A solution: replace the download URL in ~cport/main/musl/template.py~, for my case, I replace the following code:
+
+#+begin_src diff
+   license = "MIT"
+   url = "http://www.musl-libc.org"
+   source = [
+  -    f"https://git.musl-libc.org/cgit/musl/snapshot/musl-{_commit}.tar.gz",
+  +    f"https://github.com/kraj/musl/archive/{_commit}.tar.gz",
+       f"https://github.com/microsoft/mimalloc/archive/refs/tags/v{_mimalloc_ver}.tar.gz",
+   ]
+   source_paths = [".", "mimalloc"]
+#+end_src
+
