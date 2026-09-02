@@ -222,7 +222,10 @@ the following commands should be run in container:
   # - chimerautils-extra: provides some commands, such as `patch` etc.
   # - pkgconf: provides the command `pkg-config`.
   # - linux-headers: the headers for compilers(llvm)
-  apk add clang lld gmake meson cmake git byacc bison flex openssl ccache less bubblewrap shadow chimerautils-extra pkgconf linux-headers
+  # - autoconf/automake/gm4/libtool: auto tools, required by packages, such as xz
+  apk add clang lld gmake meson cmake git byacc bison flex openssl ccache \
+      less bubblewrap shadow chimerautils-extra pkgconf linux-headers \
+      autoconf automake gm4 libtool
 
   # Add a new non-root user
   useradd -m -s /bin/sh chimera
