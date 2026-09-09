@@ -9,5 +9,26 @@
 
 ** 环境准备(Setup)
 
+** STM32F103
 
+- CPU：Cortex-M3
+- Thumb 指令集
+- 无 ~FPU~ ，通常使用 ~soft-float~
+
+对于 ~clang++~ 来说，核心编译参数如下：
+
+#+begin_src bash
+  # -Og for debug version, -Os for release version
+  # reduce result size: -ffunction-sections -fdata-sections -fno-common, with link options: -Wl,--gc-sections
+  # bare metal options: -ffreestanding -fno-builtin
+  # remove C++ features: -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-use-cxa-atexit
+  # safety features: -Wall -Wextra -fno-strict-aliasing -fno-stack-protector
+  --target=thumbv7m-none-eabi -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -std=c++17 -Os -g3 -ffunction-sections -fdata-sections -fno-common -ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-use-cxa-atexit -Wall -Wextra -fno-strict-aliasing -fno-stack-protector
+  #
+  # Link options:
+  # -T linker/stm32f103c8tx.ld
+  # -Wl,--gc-sections
+  # -Wl,-Map=build/firmware.map
+  # -Wl,--print-memory-usage
+#+end_src
 
