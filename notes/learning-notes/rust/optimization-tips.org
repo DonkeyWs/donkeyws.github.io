@@ -1,0 +1,108 @@
+#+title: Optimization Tips/Tricks of Rust
+#+date: 2026/09/10
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+** Five Unsafe Optimizations(From Polars)
+
+*** Skip the Bounds Check
+
+The example code:
+
+#+begin_src rust
+  fn sum_at(values: &[f64], idx: &[usize]) -> f64 {
+      let mut total = 0.0;
+      for &i in idx {
+  	// for 100M elements, 100M bounds check
+  	total += values[i]; // <-- here the compiler will insert the bounds check instructions automatically
+      }
+      total
+  }
+#+end_src
+
+The ~unsafe~ optimization:
+
+#+begin_src rust
+  fn sum_at(values: &[f64], idx: &[usize]) -> f64 {
+      let mut total = 0.0;
+      for &i in idx {
+  	total += unsafe { *values.get_unchecked(i) }; // <-- no bounds check at all, the compiler will trust your promise
+      }
+      total
+  }
+#+end_src
+
+*** Reserve Memeory without Initialization
+
+The example code:
+
+#+begin_src rust
+  // here, allocate n elements, and initialize with ZERO,
+  // but in the following steps, overwrite the value with compute(i) immediately
+  let mut out = vec![0.0; n];
+  for i in 0..n {
+      out[i] = compute(i);
+  }
+#+end_src
+
+The ~unsafe~ optimization:
+
+#+begin_src rust
+  // Only allocate the memory
+  let mut out: Vec<f64> = Vec::with_capacity(n);
+  let spare: &mut [MaybeUninit<f64>] = out.spare_capacity_mut();
+  for i in 0..n {
+      spare[i] = MaybeUninit::new(compute(i));
+  }
+
+  // SAFETY: the loop above initialized all `n` slots,
+  // set the length manually
+  unsafe { out.set_len(n) };
+#+end_src
+
+*** Pointers Across Threads
+
+The ~unsafe~ optimization:
+
+#+begin_src rust
+  // In Polars, it is a wrapper of raw pointer, will be shared across multiple threads.
+  // This will save a lot of memory and redundant copies.
+  // Typical, Rust disallow share raw pointer between threads, raw pointer has no Send and Sync traits
+  [#repr(transparent)]
+  pub struct SyncPtr<T>(*mut T); // <-- Note the type: *mut T, a raw pointer
+
+  // Implement these two traits explicitly
+  unsafe impl<T> Sync for SyncPtr<T> {}
+  unsafe impl<T> Send for SyncPtr<T> {}
+#+end_src
+
+*** Determinitic iterator Length
+
+The ~unsafe~ optimization:
+
+#+begin_src rust
+  // SAFETY: the iterator is guaranteed to report the correct length
+  pub unsafe trait TrustedLen: Iterator {}
+
+  // on the consumer side
+  let n = iter.size_hint().1.unwrap();
+  let mut buf = Vec::with_capacity(n);
+#+end_src
+
+*** Reinterpret Bytes as a New Type
+
+The ~unsafe~ optimization:
+
+#+begin_src rust
+  // 1. Export column to Rust's ArrowArray
+  let rust_array: ArrowArray = ffi::export(column)?;
+
+  // 2. Reinterpret the bytes as a C-compatible FFI_ArrowArray
+  let c_array: FFI_ArrowArray = unsafe { transmute(rust_array) };
+#+end_src
+
+*** Unchecked UTF8 Strings
+
+#+begin_src rust
+  // Replace std::str::from_utf8 with std::str::from_utf8_unchecked for trusted strings.
+#+end_src
+
