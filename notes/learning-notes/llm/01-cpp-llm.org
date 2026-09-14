@@ -32,7 +32,7 @@
 ~GPT2~ 的分词过程力求在这两者之间取得平衡，既能处理任意文本，又比单纯对每个字符进行分词的效率更高。
 下面我们用示例句子来拆解一下："GPT2 was created by OpenAI"。
 
-** 步骤1：初始拆分
+*** 步骤1：初始拆分
 
 首先发生的是，分词器会使用一个极其糟糕的正则表达式（regular expression）将输入内容拆分成更易处理的小块，同时保留重要的语言特征：
 
@@ -61,11 +61,11 @@
 在 ~GPT-2~ 的分词器中，空格由 'Ġ'（Unicode 编码 U+0120）表示，本示例其余部分将使用该符号。
 #+end_note
 
-** 步骤2：字节对编码（BPE）
+*** 步骤2：字节对编码（BPE）
 
 每个标记随后都会进行字节对编码。不过在讲解这个示例之前，我们需要先了解两个重要概念——词汇表和合并列表。这两者都是分词器训练过程的产物，会在输入文本的分词过程中被使用。
 
-*** 词汇
+**** 词汇
 
 GPT2 的词汇表存储在一个 JSON 文件中，该文件将 50257 个标记映射到其对应的唯一整数 ID。它包含单个字符、常见子词和高频单词。以下是几个具体示例：
 
@@ -86,7 +86,7 @@ GPT2 的词汇表存储在一个 JSON 文件中，该文件将 50257 个标记�
 
 请注意，大小写以及前面是否有空格都很重要！在 GPT2 词汇表中，“The”、“the” 和 “ The” 都被视为不同的标记。
 
-*** 合并
+**** 合并
 
 在字节对编码过程中，我们可以执行50,000种可能的合并操作。列表中的每一项都代表一次合并操作，标明了哪些标记对需要合并。合并的顺序至关重要——它体现了合并的优先级。列表中靠前的几项合并操作如下所示：
 
@@ -102,5 +102,434 @@ GPT2 的词汇表存储在一个 JSON 文件中，该文件将 50257 个标记�
 
 这两个概念——词汇表（vocab）和合并列表（merge list）——联系紧密，且均源自同一生成过程。如果你好奇为何词汇表的条目数（257个）比合并列表略多，原因在于词汇表包含了对应所有可能字节（0-255）的256个条目，同时还收录了ID为50256的特殊“文本结束”符号。这些条目并非由合并操作生成，而是为了确保任意字节序列都能被分词而纳入其中。合并列表决定了分词过程中字符和子词的组合方式，而这些合并操作生成的分词结果则收录在词汇表中。
 
+关于特殊的“<|endoftext|>”标记（ID 50256），这里简要说明一下。该标记用于在训练和推理过程中标识文档或文本片段的结束，但在输入文本的标准分词过程中通常不会使用它。在准备训练数据或生成文本时，通常会手动将其添加到分词后的序列末尾。
 
+好的，先把这个话题岔开，我们来看看“GPT2”和“OpenAI”的相关情况，包括不同配对组合的排名：
+
+**** 针对“GPT2”的BPE
+
++------+----------------------+---------------------------+--------------------------+
+| 步骤 | 当前状态             | 配对排名                  | 选定的合并               |
++------+----------------------+---------------------------+--------------------------+
+| 1    | ["G", "P", "T", "2"] | (G,P): 16705              | (P,T) → "PT" (P,T) → "PT |
+|      |                      | (P,T): 11315              |                          |
+|      |                      | (T,2): -1                 |                          |
++------+----------------------+---------------------------+--------------------------+
+| 2    | ["G", "PT", "2"]     | (G,PT): -1                | 不再合并                 |
+|      |                      | (PT,2): -1                |                          |
++------+----------------------+---------------------------+--------------------------+
+
+**** “OpenAI”的BPE
+
++------+-------------------------------------+---------------------------+--------------------------+
+| 步骤 | 当前状态                            | 配对排名                  | 选定的合并               |
++------+-------------------------------------+---------------------------+--------------------------+
+| 1    | ["Ġ", "O", "p", "e", "n", "A", "I"] | (Ġ,O): 185                | (e,n) → "en"             |
+|      |                                     | (O,p): 18002              |                          |
+|      |                                     | (p,e): 176                |                          |
+|      |                                     | (e,n): 13                 |                          |
+|      |                                     | (n,A): -1                 |                          |
+|      |                                     | (A,I): 19930              |                          |
++------+-------------------------------------+---------------------------+--------------------------+
+| 2    | ["Ġ", "O", "p", "en", "A", "I"]     | (Ġ,O): 185                | (Ġ,O) → "ĠO"             |
+|      |                                     | (O,p): 18002              |                          |
+|      |                                     | (p,en): 3362              |                          |
+|      |                                     | (en,A): -1                |                          |
+|      |                                     | (A,I): 19930              |                          |
++------+-------------------------------------+---------------------------+--------------------------+
+| 3    | ["ĠO", "p", "en", "A", "I"]         | (ĠO,p): 8415              | (p,en) → "pen"           |
+|      |                                     | (p,en): 3362              |                          |
+|      |                                     | (en,A): -1                |                          |
+|      |                                     | (A,I): 19930              |                          |
++------+-------------------------------------+---------------------------+--------------------------+
+| 4    | ["ĠO", "pen", "A", "I"]             | (ĠO,pen): 4692            | (ĠO,pen) → "ĠOpen"       |
+|      |                                     | (pen,A): -1               |                          |
+|      |                                     | (A,I): 19930              |                          |
++------+-------------------------------------+---------------------------+--------------------------+
+| 5    | ["ĠOpen", "A", "I"]                 | (ĠOpen, A): -1            | (A, I) → "AI"            |
+|      |                                     | (A,I): 19930              |                          |
++------+-------------------------------------+---------------------------+--------------------------+
+| 6    | ["ĠOpen", "AI"]                     | (ĠOpen, AI): -1           | 不再合并                 |
++------+-------------------------------------+---------------------------+--------------------------+
+
+当基于学习到的合并规则无法再进行合并时，BPE 过程停止。每一步都会选择排名最低（频率最高）的合并操作。
+
+*** 步骤3：词汇查找
+
+最后，在词汇表中查找每个生成的子词，将其转换为整数标记ID：
+
+- "G" → 38
+- "PT" → 11571
+- "2" → 17
+- "Ġwas" → 373
+- "Ġcreated" → 2726
+- "Ġby" → 416
+- "ĠOpen" → 4946
+- "AI" → 20185
+
+*** 最终输出
+
+#+begin_src python
+  [38, 11571, 17, 373, 2726, 416, 4946, 20815]
+#+end_src
+
+** 分词器类
+
+让我们先来看看分词器类的主要结构：
+
+#+begin_src cpp
+class tokenizer_t {
+private:
+    // Encoder: maps tokens to IDs using the vocabulary
+    std::map<string_t, int> encoder;
+    // Decoder: maps IDs back to tokens
+    std::map<int, string_t> decoder;
+    // merge_ranks: stores the priority of merge operations
+    std::vector<std::pair<string_t, string_t>> merge_ranks;
+    // Regex pattern for tokenization - performs initial splitting of input string
+    std::regex regex_splitter;
+    // Byte-to-unicode mapping
+    std::map<uint8_t, char32_t> byte_encoder;
+
+    // Private methods...
+
+public:
+    tokenizer_t(const string_t& vocab_file, const string_t& merges_file);
+
+    // Tokenize input text
+    std::vector<int> tokenize(const string_t& text);
+
+    // Get strings back from the tokens
+    std::vector<string_t> detokenize(const std::vector<int>& tokens);
+
+    // Other public methods...
+};
+#+end_src
+
+这里没什么好说的，这个类包含了我们进行标记化所需的所有对象：
+
+- encoder: 使用GPT2词汇表将标记映射到其对应的ID。
+- decoder: 与编码器相反，将ID映射回标记。
+- merge_ranks: 存储字节对编码的合并操作优先级（即合并列表）。
+- regex_splitter: 一种用于对输入文本进行初步粗略分割的正则表达式模式。
+- byte_encoder：字节到Unicode字符的映射（稍后会详细说明）。
+
+*** 初始化
+
+分词器的构造函数会传入两个文件，一个用于词汇表，一个用于合并列表：
+
+#+begin_src cpp
+tokenizer_t::tokenizer_t(const string_t& vocab_file, const string_t& merges_file)
+{
+    // Load vocabulary from JSON file
+    std::ifstream vocab_stream(vocab_file);
+    json vocab_json;
+    vocab_stream >> vocab_json;
+    for (auto it = vocab_json.begin(); it != vocab_json.end(); ++it) {
+        int id = it.value();
+
+        // create the encoder entry mapping string -> int
+        encoder[it.key()] = id;
+        // create the corresponding decoder entry int -> string
+        decoder[id] = it.key();
+    }
+
+    // Load BPE merges from text file
+    std::ifstream merges_stream(merges_file);
+    string_t line;
+    std::getline(merges_stream, line);  // Skip first line (header)
+
+    while (std::getline(merges_stream, line)) {
+        if (line.empty()) {
+            break;
+        }
+
+        // the merges file is just space separated
+        size_t split_pos = line.find(' ');
+        if (split_pos == string_t::npos) {
+            die("Invalid line in merges file: " + line);
+        }
+
+        string_t first = line.substr(0, split_pos);
+        string_t second = line.substr(split_pos + 1);
+
+        // Add this merge rule to merge_ranks
+        merge_ranks.emplace_back(first, second);
+    }
+
+    // Compile regex pattern for tokenization
+    regex_splitter = std::regex("'s|'t|'re|'ve|'m|'ll|'d| ?[a-zA-Z]+| ?[0-9]+| ?[^\s\w]+|\s+(?!\S)|\s+");
+    
+    // Initialize byte encoder/decoder
+    byte_encoder = bytes_to_unicode();
+}
+#+end_src
+
+构造函数随后执行一些基本操作：
+
+- 它从 JSON 文件加载词汇表，创建编码器和解码器的映射关系。
+- 它从文本文件中读取BPE合并操作，填充merge_ranks向量。
+- 它编译一个正则表达式模式用于初始分词。
+- 它使用 bytes_to_unicode() 函数初始化 byte_encoder，我们接下来会详细讲解这个函数。
+
+这里其实没什么别的要讲了，我们接着来看字节到Unicode的映射吧。
+
+*** 字节到Unicode映射
+
+bytes_to_unicode() 函数在字节值（0-255）和 Unicode 字符之间创建了一个可逆映射：
+
+#+begin_src cpp
+// Function to create byte-to-unicode mapping for GPT-2 tokenization
+std::map<uint8_t, char32_t> tokenizer_t::bytes_to_unicode()
+{
+    // Purpose: Create a specific bijective mapping between byte values (0-255) and Unicode code points.
+    // This mapping is designed to be consistent with GPT-2's original tokenization scheme.
+
+    std::vector<uint8_t> bs;
+    // Step 1: Add printable ASCII characters (33 to 126, i.e., '!' to '~')
+    // Note: We will handle 0-32 (and the other missing values) later
+    for (int i = 33; i <= 126; ++i)
+        bs.push_back(i);
+    // Step 2: Add extended ASCII characters (161 - '¡' to 172 - '¬' and 174 - '®'to 255 - 'ÿ')
+    for (int i = 161; i <= 172; ++i)
+        bs.push_back(i);
+    for (int i = 174; i <= 255; ++i)
+        bs.push_back(i);
+
+    // Create a copy of bs to store the Unicode mappings
+    std::vector<char32_t> cs(bs.begin(), bs.end());
+    int n = 0;
+    // Step 3: Map remaining byte values (0-32, 127-160, 173) to Unicode points starting at 256
+    // This includes control characters, space, delete, and some extended ASCII characters
+    // Mapping these to 256+ ensures:
+    // 1. Consistency with GPT-2's original tokenization scheme
+    // 2. Clear visual distinction of special characters during debugging
+    // 3. Avoidance of potential issues with the way text editors handle control characters
+    
+    for (int b = 0; b < 256; ++b) {
+
+        // if we have already added this byte, skip it
+        if (std::find(bs.begin(), bs.end(), b) != bs.end()) 
+            continue;
+
+        bs.push_back(b);
+        // Map to Unicode characters starting from 256
+        // Note: we add 256 to avoid conflicts with the ASCII range
+        cs.push_back(256 + n);
+        ++n;
+        
+    }
+
+    // Create the final mapping
+    // Note: We need to use char32_t rather than char to handle Unicode code points over 255
+    std::map<uint8_t, char32_t> result;
+    for (size_t i = 0; i < bs.size(); ++i) {
+        result[bs[i]] = cs[i];
+    }
+    return result;
+}
+#+end_src
+
+此函数在字节值（uint8_t 类型）与 Unicode 码点（以 char32_t 存储）之间建立一一映射关系，并确保 256 种可能的字节值均能表示为可打印字符。
+
+起初我并不太清楚为什么这个函数的写法看起来如此随意：
+
+- 它从可打印的 ASCII 字符开始（33 到 126，即 '!' 到 '~'）。
+- 随后包含了大部分扩展 ASCII 字符（161 至 172、174 至 255）。
+- 剩余的字节值（0-32、127-160、173）被映射到从码点256开始的Unicode字符。
+
+这样做的原因是，它能确保所有字节都可表示为可打印的 Unicode 字符，这对调试和可视化分词过程很有帮助。它还避免将字节映射到 Unicode 控制字符（0-31、127-159）以及软连字符（173）等其他特殊字符。这些控制字符是不可打印字符，用于控制或修改文本和空格的处理与显示方式。一些常见的控制字符包括：
+
+- 空字符：U+0000（十进制为0）——在许多编程语言中用于终止字符串
+- 换行符（LF）：U+000A（十进制为10）——用于换行，尤其在基于Unix的系统中
+- 回车符（CR）：Unicode 编码为 U+000D（十进制为 13）——用于换行，在 Windows 系统中通常与换行符（LF）配合使用
+- 删除：U+007F（十进制为127）——传统上用于标记已删除的数据
+
+这些字符可能导致文本显示不一致或异常、数据截断、处理错误、安全风险以及调试难题。通过避免直接映射控制字符码点，这一稍显复杂的流程可减轻文本处理中的潜在问题，并提升分词过程的稳健性。
+
+这使得能够对所有可能的字节值进行一致处理，同时清晰区分原始可打印ASCII字符与其他字节值。
+
+*** 分词过程
+
+主要的分词过程由 tokenize() 方法处理：
+
+#+begin_src cpp
+// Tokenize input text
+std::vector<int> tokenizer_t::tokenize(const string_t& text)
+{
+    std::vector<int> tokens;
+
+    // Use regex to try and split text into smaller chunks
+    std::sregex_iterator iter(text.begin(), text.end(), regex_splitter);
+    // A default-constructed std::sregex_iterator represents the past-the-end iterator
+    std::sregex_iterator end_iter; 
+
+    // while there are chunks left, tokenize them
+    while (iter != end_iter) {
+        string_t utf8_token = iter->str();
+
+        // Apply byte-level encoding
+        std::u32string utf32_token;
+        for (uint8_t b : utf8_token) {
+            utf32_token += byte_encoder.at(b);
+        }
+
+        // Apply BPE encoding
+        std::vector<string_t> bpe_encoded = bpe(utf32_token);
+        for (const string_t& bpe_token : bpe_encoded) {
+            int token_id = encoder.at(bpe_token);
+            tokens.push_back(token_id);
+        }
+
+        // Move to the next regex match
+        ++iter;
+    }
+
+    return tokens;
+}
+#+end_src
+
+此时这个函数相当简单，从整体上实现了我们在文章开头描述的分词流程：
+
+- 它利用正则表达式模式尝试将输入文本拆分为更小的片段。
+- 对于每个文本块，它使用字节编码器进行字节级编码。
+- 随后对每个已编码的标记应用字节对编码（BPE）。
+- 最后，它从词汇表中查找每个BPE标记的整数ID，并将其添加到结果中。
+
+这里有个稍微有点意思的情况，我觉得有必要解释一下，这和正则表达式的求值有关（果然如此…）。C++ 中的大多数迭代器都有一个 iter.end() 函数，你可以一直遍历直到到达末尾。但正则表达式迭代器有些不同，你必须将它与一个默认构造的迭代器进行比较，才能判断是否到达了末尾，因为它在遍历结束前并不知道迭代的长度。这就是为什么我们需要创建 end_iter 对象，并在 while 循环的条件中使用它。
+
+不过这里发生的核心事情是 BPE 编码。这在 bpe() 方法中实现，我们接下来会详细讲解这个方法。
+
+*** 字节对编码(BPE)
+
+这里是大部分工作的核心所在，bpe() 方法的代码如下所示：
+
+#+begin_src cpp
+// performs byte pair encoding on a UTF-32 encoded input
+std::vector<string_t> tokenizer_t::bpe(const std::u32string& input)
+{
+    // Initialize a vector of UTF-32 tokens. 
+    // Right now each entry it just a single character from the input, 
+    // however these will potentially get merged through the BPE process
+    std::vector<std::u32string> tokens;
+    tokens.reserve(input.size());
+    for (char32_t c : input) {
+        tokens.push_back(std::u32string(1, c));
+    }
+
+    // Main BPE loop
+    while (true) {
+        std::pair<std::u32string, std::u32string> best_pair;
+        int best_rank = -1;
+
+        // Find the best pair to merge based on rank
+        for (size_t i = 0; i < tokens.size() - 1; ++i) {
+            // Get the rank of the current pair
+            int rank = get_pair_rank(utf32_to_utf8(tokens[i]), utf32_to_utf8(tokens[i + 1]));
+            // Update best_pair and best_rank if this pair is better
+            if (rank != -1 && (best_rank == -1 || rank < best_rank)) {
+                best_pair = {tokens[i], tokens[i + 1]};
+                best_rank = rank;
+            }
+        }
+
+        // If no mergeable pair found, exit the loop
+        if (best_rank == -1) {
+            break;
+        }
+
+        // Merge the best pair of tokens
+        std::vector<std::u32string> merged_tokens;
+        for (size_t i = 0; i < tokens.size(); ++i) {
+            if (i < tokens.size() - 1 && tokens[i] == best_pair.first && tokens[i + 1] == best_pair.second) {
+                // Merge the pair
+                merged_tokens.push_back(best_pair.first + best_pair.second);
+                ++i;  // Skip the next token as it's now merged
+            } else {
+                // Keep the token as is
+                merged_tokens.push_back(tokens[i]);
+            }
+        }
+
+        // Update tokens with the new merged version
+        tokens = std::move(merged_tokens);
+    }
+
+    // Convert the final vector from UTF-32 to UTF-8
+    std::vector<string_t> result;
+    for (const std::u32string& token : tokens) {
+        result.push_back(utf32_to_utf8(token));
+    }
+
+    return result;
+}
+#+end_src
+
+从顶部开始，我们要做的第一件事是将输入（由正则表达式生成的文本块之一）拆分为单个字符：
+
+#+begin_src cpp
+// Initialize a vector of UTF-32 tokens. 
+// Right now each entry it just a single character from the input, 
+// however these will potentially get merged through the BPE process
+std::vector<std::u32string> tokens;
+tokens.reserve(input.size());
+for (char32_t c : input) {
+    tokens.push_back(std::u32string(1, c));
+}
+#+end_src
+
+目前这些已经是有效的标记符了——GPT2 的词汇表包含所有单字节字符作为标记符，所以理论上我们现在就可以停止。这个函数中的主循环会尝试寻找最常见的有效配对（即那些存在于合并列表中的配对），直到没有剩余的有效配对为止。此时标记符向量的内容将包含从该输入中提取出的最终标记符集合。该循环的第一步是检查该向量内所有可能的标记符对，从合并列表中获取它们的优先级，并找到优先级最高的那一对。
+
+#+begin_src cpp
+std::pair<std::u32string, std::u32string> best_pair;
+int best_rank = -1;
+
+// Find the best pair to merge based on rank
+for (size_t i = 0; i < tokens.size() - 1; ++i) {
+    // Get the rank of the current pair
+    int rank = get_pair_rank(utf32_to_utf8(tokens[i]), utf32_to_utf8(tokens[i + 1]));
+    // Update best_pair and best_rank if this pair is better
+    if (rank != -1 && (best_rank == -1 || rank < best_rank)) {
+        best_pair = {tokens[i], tokens[i + 1]};
+        best_rank = rank;
+    }
+}
+#+end_src
+
+这里的 get_pair_rank 函数只是一个简单的查找操作，用于检查该键值对是否存在于我们的合并列表中。如果存在，它返回对应的排名；否则返回 -1。如果经过此步骤后最佳排名仍为 -1，说明没有可继续合并的有效键值对，我们便退出循环。
+
+#+begin_src cpp
+// If no mergeable pair found, exit the loop
+if (best_rank == -1) {
+    break;
+}
+#+end_src
+
+否则我们会创建一个更新后的向量，该向量会合并最佳的标记对，并保留其他所有标记不变。这个更新后的向量会替换我们原始的标记向量，然后我们进入循环的下一次迭代：
+
+#+begin_src cpp
+// Merge the best pair of tokens
+std::vector<std::u32string> merged_tokens;
+for (size_t i = 0; i < tokens.size(); ++i) {
+    if (i < tokens.size() - 1 && tokens[i] == best_pair.first && tokens[i + 1] == best_pair.second) {
+        // Merge the pair
+        merged_tokens.push_back(best_pair.first + best_pair.second);
+        ++i;  // Skip the next token as it's now merged
+    } else {
+        // Keep the token as is
+        merged_tokens.push_back(tokens[i]);
+    }
+}
+
+// Update tokens with the new merged version
+tokens = std::move(merged_tokens);
+#+end_src
+
+就是这么简单。循环结束后，我们就得到了标记向量，只需在返回前将其转换回 UTF-8 格式即可，因为这正是我们的词汇表编码器所期望的。随后我们可以在词汇表中查找每一项，以获取最终的标记 ID，再将这些 ID 输入模型。
+
+** 结论
+
+回顾这篇文章开头的架构图，我们目前只讲了前两个模块！不过我认为这其实是从零实现 GPT2 中比较繁琐的部分，剩下的大多只是矩阵运算，快速讲完可能反而会更快。
+
+整体计划是将架构的其余部分拆分成另外几篇博客文章，下一篇将讲解嵌入/反嵌入过程以及生成下一个标记，最后再介绍Transformer块。完成这些内容后，我会继续撰写更多以机器学习为主题的文章，比如我想以GPT2为参照，对发布时间比它晚约4年的Llama1重复上述分析，以此更深入地了解这段时间内技术的发展。同时，我也会探讨如何在自定义数据集上对这些模型进行微调，以及运用人类反馈强化学习（RLHF）的方法。
 
