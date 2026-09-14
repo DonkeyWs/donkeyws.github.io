@@ -62,6 +62,10 @@ Build the ~MLIR~:
       # Optionally, enabling integration tests as well
       # -DMLIR_INCLUDE_INTEGRATION_TESTS=ON
 
+      # Build MLIR components
+      # cmake --build . -t mlir-opt mlir-translate mlir-transform-opt mlir-runner
+      # cmake --build . -t install
+
       if [ $? -eq 0 ]; then
           cmake --build .build --config Release --target check-mlir
       else
@@ -72,4 +76,15 @@ Build the ~MLIR~:
 
   build $@
 #+end_src
+
+Using ~docker~ is also a good way:
+
+#+begin_src bash
+  docker pull ghcr.io/sdiehl/docker-mlir-cuda:mlir20-ubuntu24.04
+
+  # Run
+  docker run -it ghcr.io/sdiehl/docker-mlir-cuda:<tag> bash
+#+end_src
+
+Reference to [[MLIR Install][https://www.stephendiehl.com/posts/mlir_install/]]
 

@@ -32,3 +32,52 @@
   # -Wl,--print-memory-usage
 #+end_src
 
+*** Simulation
+
+使用 =renode= 来模拟 =STM32F103= 这个板子，方便调试，首先创建 =RESC= 脚本 =run_stm32.resc= ，内容如下：
+
+#+begin_src
+  using sysbus
+  mach create "stm32f103"
+
+  # 加载STM32F103平台描述文件
+  machine LoadPlatformDescription @platforms/cpus/stm32f103.repl
+
+  # 加载编译好的固件（ELF格式）
+  machine LoadELF @/path/to/your/firmware.elf
+
+  # 打开UART2分析器用于串口输出
+  showAnalyzer sysbus.usart2
+
+  # 配置UART外设
+  showAnalyzer sysbus.usart2  # 启用UART2分析器
+
+  # 创建LED外设
+  led: LED.LED
+  led: LED.LED @ sysbus.gpioc 13  # 连接到PC13引脚
+
+  # 创建按钮外设
+  button: Button.Button
+  button: Button.Button @ sysbus.gpioa 0  # 连接到PA0引脚
+
+  # SPI配置
+  spi: SPI.STM32F103_SPI @ sysbus.spi1
+  spi: SPI.STM32F103_SPI @ sysbus.spi2
+
+  # I2C配置
+  i2c: I2C.STM32F103_I2C @ sysbus.i2c1
+  i2c: I2C.STM32F103_I2C @ sysbus.i2c2
+
+  # 启动GDB服务器（端口3333）
+  machine StartGdbServer 3333 true
+
+  # 开始仿真
+  start
+#+end_src
+
+之后通过如下命令启动模拟环境：
+
+#+begin_src bash
+  renode --disable-gui --console run_stm32.resc
+#+end_src
+
