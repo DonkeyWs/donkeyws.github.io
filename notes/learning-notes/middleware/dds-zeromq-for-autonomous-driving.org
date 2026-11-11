@@ -1,0 +1,960 @@
+#+title: 自动驾驶通信中间件：DDS 与 ZeroMQ 实战教程
+#+date: 2026/11/11
+#+author: Donkey <anjingyu_ws@foxmail.com>
+
+* 写在前面
+
+本文面向自动驾驶 / 机器人方向的工程师，假设读者具备 Linux、C++、socket 与序列化的基础。
+目标是读完能够：
+
+1. 说清楚 DDS 与 ZeroMQ 各自解决什么问题、边界在哪里。
+2. 独立设计一套 topic / QoS / 序列化方案，而不是抄别人的配置文件。
+3. 在"收不到数据""时延抖动""带宽打满"这类现场问题上有系统的排查路径。
+
+范围约定：
+
+- DDS 以 OMG ~DDS v1.4~、~DDSI-RTPS v2.5~ 为准，实现参考 Fast DDS、Cyclone DDS、RTI Connext。
+- ZeroMQ 以 libzmq 4.x（ZMTP 3.x）为准，语言绑定以 C++（cppzmq）举例。
+- 性能数字均为同机、空载、小消息条件下的量级参考，不是承诺值。
+
+* 1. 问题背景：自动驾驶到底在传什么
+
+一辆 L4 乘用车的软件通常拆成几十个进程：传感器驱动、时间同步、感知、融合、预测、规划、控制、诊断、录包。
+它们分布在 SoC 的不同核、不同加速器，甚至不同板卡上；模块由不同团队、不同供应商交付。
+因此需要一个"通信中间件"来回答五个问题：
+
+1. 谁在发、谁在收，进程启动顺序能否无关？——*发现*
+2. 不同数据的保障能否不同？——*QoS*
+3. 数据长什么样、如何演进？——*类型系统*
+4. 延迟、抖动、带宽上限是多少？——*传输与流控*
+5. 谁能读、谁能写？——*安全*
+
+** 1.1 典型数据流与量级
+
+#+begin_example
+  sensors ──► perception ──► fusion ──► prediction ──► planning ──► control ──► actuation
+     │            │             │            │             │           │
+     └────────────┴─────────────┴────────────┴─────────────┴───────────┴──► record / diagnose
+#+end_example
+
+表 1：单路数据的典型量级（估算，用于做带宽预算，不是规格书）
+
+| 数据                    | 频率      | 单帧大小        | 带宽量级     | 时延要求 | 推荐语义            |
+|-------------------------+-----------+-----------------+--------------+----------+---------------------|
+| 4K 相机 RAW             | 30 Hz     | ~24 MB          | ~750 MB/s    | < 100 ms | BEST_EFFORT，丢旧帧 |
+| 4K 相机压缩（H.265）    | 30 Hz     | 100~500 KB      | 3~15 MB/s    | < 100 ms | BEST_EFFORT         |
+| 激光雷达点云（128 线）  | 10 Hz     | 2~6 MB          | 20~60 MB/s   | < 100 ms | BEST_EFFORT         |
+| 毫米波雷达              | 20 Hz     | 50~200 KB       | 1~4 MB/s     | < 50 ms  | BEST_EFFORT         |
+| 感知障碍物列表          | 10~20 Hz  | 10~100 KB       | < 2 MB/s     | < 50 ms  | RELIABLE + DEADLINE |
+| 规划轨迹                | 10~20 Hz  | 1~10 KB         | < 200 KB/s   | < 20 ms  | RELIABLE + DEADLINE |
+| 控制指令                | 50~100 Hz | < 1 KB          | < 100 KB/s   | < 10 ms  | RELIABLE + DEADLINE |
+| 车辆底盘 / CAN          | 50~100 Hz | 8~64 B          | < 100 KB/s   | < 10 ms  | RELIABLE            |
+| 日志 / 录包             | 事件驱动  | 大              | 磁盘上限     | 无       | BEST_EFFORT         |
+
+两个直接结论：
+
+1. *摄像头 RAW 不适合走"通用网络协议 + 逐包确认"*。750 MB/s 的量级必须靠共享内存、零拷贝、压缩，或者干脆把"图像"从通信中间件里拿出来单独设计。
+2. *不同数据必须有不同的可靠性语义*。对图像做可靠重传只会让端到端延迟越来越差；对控制指令用尽力而为则可能丢命。
+
+这正是 DDS 的 QoS 与 ZeroMQ 的"模式即语义"要解决的问题。
+
+* 2. DDS：以数据为中心的发布订阅
+
+** 2.1 标准家族与实现版图
+
+DDS 不是某一个库，而是一组规范。互操作性来自规范，而不是来自同一家厂商：
+
+| 规范                    | 作用                                        |
+|-------------------------+---------------------------------------------|
+| DDS v1.4                | DCPS 编程模型、QoS、监听器                  |
+| DDSI-RTPS v2.5          | 线上协议：发现、数据收发、可靠性、分片      |
+| DDS-XTypes v1.3         | 类型系统、类型演进与兼容性规则              |
+| DDS-Security v1.1       | 认证、访问控制、加密、日志插件              |
+| IDL 4.2                 | 数据类型定义语言                            |
+
+主流实现：
+
+| 实现              | 特点                                                        | 典型使用                 |
+|-------------------+-------------------------------------------------------------+--------------------------|
+| Fast DDS          | eProsima 维护，ROS 2 默认 RMW 之一，内置 SHM、Discovery Server | ROS 2、量产项目          |
+| Cyclone DDS       | Eclipse 维护，代码轻、内存小，可接 iceoryx                   | 嵌入式、ROS 2            |
+| RTI Connext       | 商业实现，工具链和认证支持最完整                             | 车厂量产、航空           |
+| OpenDDS           | 老牌开源实现，偏军用 / 舰载                                  | 特定行业                 |
+| Dust DDS          | Rust 实现，适合新语言栈                                      | 边缘工具、研究           |
+
+补充一句：AUTOSAR Adaptive 的 ~ara::com~ 是"服务抽象"，底层可以绑定 DDS，也可以绑定 SOME/IP。
+SOME/IP 偏"面向服务的 RPC + 事件"，DDS 偏"以数据为中心的总线"；两者不是替代关系，常见于不同域。
+
+** 2.2 DCPS 实体模型
+
+#+begin_example
+  DomainParticipant (domain_id = 0)
+   ├── Publisher
+   │    └── DataWriter ──┐
+   │                      │  Topic: "rt/perception/obstacles"
+   ├── Subscriber         │  Type : ad::msg::ObstacleArray
+   │    └── DataReader ───┘  QoS  : 一组策略
+   └── Topic (name + type + QoS)
+#+end_example
+
+要点：
+
+- ~DomainParticipant~ 是"加入某个 DDS 域"的句柄，域内自动发现，域间默认隔离。用 domain 做"整车 / 台架 / 回放"的环境隔离是最省事的做法。
+- ~Topic~ 由 *名字 + 类型 + QoS* 三者共同决定；名字相同但类型不同，不会匹配。
+- ~DataWriter~ / ~DataReader~ 是真正承载 QoS 的实体；同一 topic 可以有多个 writer（冗余）和多个 reader。
+- 大多数 QoS 在实体创建后 *不可修改*（immutable），要改只能删除重建。这一点在设计阶段就要想清楚。
+
+** 2.3 类型设计：IDL 是协议的一部分
+
+DDS 用 IDL 描述类型，序列化格式由实现按 XTypes 规则生成。类型不是"随手写个 struct"，它决定了：
+
+- 线上字节布局与对齐；
+- 类型演进（加字段、删字段）是否兼容；
+- 能否使用 key（实例）；
+- 能否零拷贝 / 共享内存直传。
+
+#+begin_src cpp
+  // ad_msgs.idl
+  module ad {
+    module msg {
+
+      @final
+      struct Time {
+        int32 sec;
+        uint32 nanosec;
+      };
+
+      @final
+      struct Obstacle {
+        uint32 id;
+        float  x;          // m, ego frame
+        float  y;
+        float  vx;
+        float  vy;
+        uint8  type;       // 0 unknown, 1 car, 2 truck, 3 pedestrian ...
+        uint8  confidence; // 0..100
+      };
+
+      @final
+      struct ObstacleArray {
+        Time              stamp;      // source timestamp
+        uint8             frame_id;   // coordinate frame id
+        sequence<Obstacle> items;     // dynamic length
+      };
+
+    };
+  };
+#+end_src
+
+关键设计选择：
+
+1. *整帧快照 vs 单目标实例*。上面是"整帧数组"，适合感知输出。如果是"目标跟踪状态"，更合理的是 ~@key uint32 id~，让每个目标成为一个 instance，订阅端按 instance 维护生命周期（出现 / 更新 / 消失）。
+2. *@final / @appendable / @mutable*。~@final~ 最省带宽、布局固定，但不能在中间插字段；~@appendable~ 允许尾部追加字段；~@mutable~ 最灵活但每个字段带 id、开销大。AD 的高频大流量建议 ~@final~，配置类可以用 ~@appendable~。
+3. *避免在 100 Hz 以上的 topic 里用 ~string~ 和嵌套 ~sequence~*。动态长度意味着堆分配、额外拷贝和不可预测的延迟。
+4. *单位、坐标系、时间戳语义写进注释*。通信协议的一半 bug 来自"米还是厘米""自车系还是世界系"。
+
+** 2.4 QoS：DDS 的核心竞争力
+
+QoS 是一组"请求 / 提供"（Requested / Offered）策略。订阅端提出请求，发布端声明提供，只有兼容才会建立通信；*不兼容时通常没有报错，只是收不到数据*，这是现场第一大坑。
+
+表 2：常用 QoS 策略
+
+| 策略                  | 取值                                        | 作用                                   | AD 中的典型用法                         |
+|-----------------------+---------------------------------------------+----------------------------------------+-----------------------------------------|
+| RELIABILITY           | BEST_EFFORT / RELIABLE                      | 是否重传丢失样本                       | 图像 BEST_EFFORT；控制 RELIABLE         |
+| HISTORY               | KEEP_LAST(depth) / KEEP_ALL                 | 缓存多少历史样本                       | 传感器 KEEP_LAST(1)；指令 KEEP_LAST(10) |
+| DURABILITY            | VOLATILE / TRANSIENT_LOCAL / TRANSIENT / PERSISTENT | 后加入者能否拿到历史样本       | 配置、地图用 TRANSIENT_LOCAL            |
+| DEADLINE              | period                                      | 承诺的最大更新间隔，超时触发回调       | 规划 / 控制必须设置                     |
+| LATENCY_BUDGET        | duration                                    | 允许中间件攒批的时延预算               | 默认 0；非实时日志可放大                |
+| LIVELINESS            | AUTOMATIC / MANUAL_BY_* + lease_duration    | 判断发布者是否存活                     | 关键节点用 MANUAL_BY_TOPIC 快速探活     |
+| OWNERSHIP             | SHARED / EXCLUSIVE                          | 多 writer 时共享还是选主               | 冗余传感器 / 主备控制器用 EXCLUSIVE     |
+| OWNERSHIP_STRENGTH    | 0~255                                       | 选主优先级                             | 主控制器 100，备控制器 50               |
+| DESTINATION_ORDER     | RECEPTION / SOURCE                          | 多 writer 时的排序依据                 | 一般用 SOURCE_TIMESTAMP                 |
+| PARTITION             | 字符串列表                                  | topic 之上的逻辑分区                   | 按"域 / 车辆 / 测试用例"隔离            |
+| TRANSPORT_PRIORITY    | 整数                                        | 传输层优先级提示                       | 控制 > 感知 > 录包                      |
+| RESOURCE_LIMITS       | max_samples / max_instances / max_samples_per_instance | 内存上限                    | 嵌入式必配，防止 OOM                    |
+| TIME_BASED_FILTER     | minimum_separated_in_persistence            | 降采样                                 | UI 可视化 10 Hz 抽取                    |
+| CONTENT_FILTERED_TOPIC| 过滤表达式                                  | 服务端 / 中间件侧过滤                  | 只订阅特定 id 的目标                    |
+| DATA_REPRESENTATION   | XCDR1 / XCDR2                               | 序列化版本                             | 跨版本互通时显式指定                    |
+
+几条容易被忽略的规则：
+
+- *RELIABLE 的订阅端不能匹配 BEST_EFFORT 的发布端*。反过来可以（订阅端 BEST_EFFORT，发布端 RELIABLE）。
+- *DEADLINE 必须两端都设置*才有效；发布端超时说明自己没按时发，订阅端超时说明对端没按时来。
+- *LIVELINESS 的 lease 时间*决定故障发现速度。默认值往往偏大，控制链路要显式调小（例如 100~300 ms），代价是心跳流量。
+- *OWNERSHIP=EXCLUSIVE + STRENGTH* 是 DDS 自带的"主备切换"，比在应用层自己投票简单，但切换瞬间的样本连续性问题仍需应用层处理。
+- QoS 是 *RxO*：发布端"提供的能力"必须大于等于订阅端"请求的要求"。匹配失败时可用实现自带的发现 / 统计接口排查。
+
+** 2.5 发现过程：SPDP 与 SEDP
+
+DDS 的"零配置"来自两阶段发现：
+
+#+begin_example
+  Participant A                                   Participant B
+       |                                                |
+       |  1. SPDP announce (multicast, 239.255.0.1)     |
+       |----------------------------------------------->|
+       |<-----------------------------------------------|
+       |  2. SEDP: 交换 Publication / Subscription 描述  |
+       |----------------------------------------------->|
+       |<-----------------------------------------------|
+       |  3. 按 topic + type + QoS 做匹配                |
+       |  4. 建立 Reader / Writer 关联                   |
+       |  5. 用户 DATA 开始流动                          |
+#+end_example
+
+- *SPDP*（Simple Participant Discovery Protocol）负责"发现彼此的存在"，默认走组播，携带 participant 的 GUID、metatraffic 单播地址、lease 时长。
+- *SEDP*（Simple Endpoint Discovery Protocol）负责"交换各自的 endpoint 清单"，携带每个 DataWriter / DataReader 的 topic、类型名、QoS。它走已发现 participant 的 metatraffic 单播地址。
+- 发现完成后，内置的 ~DCPSParticipant~ / ~DCPSPublication~ / ~DCPSSubscription~ topic 也可被应用订阅，用来做拓扑监控。
+
+端口分配遵循 RTPS 规则（PB=7400，DG=250，PG=2）：
+
+#+begin_example
+  multicast metatraffic = 7400 + 250*domain_id + 0
+  multicast user       = 7400 + 250*domain_id + 10
+  unicast   metatraffic = 7400 + 250*domain_id + 1
+  unicast   user       = 7400 + 250*domain_id + 11
+#+end_example
+
+所以 domain 0 用 7400/7401/7410/7411，domain 1 用 7650/7651/7660/7661。
+*两个 DDS 实现跑在同一台机器上抢占同一组端口，是"莫名其妙收不到"的常见原因*；换 domain id 即可。
+
+发现阶段的工程问题与对策：
+
+| 现象                           | 原因                                             | 对策                                              |
+|--------------------------------+--------------------------------------------------+---------------------------------------------------|
+| 跨机器完全看不到对方           | 组播被交换机 / 防火墙 / 容器网络阻断             | 配置 initial peers 单播；或使用 Discovery Server  |
+| 启动后要等好几秒才通           | 初始公告次数与周期、lease 到期                   | 调小 announcement period / 增加初始公告次数       |
+| 几十个节点启动时 CPU 飙高      | 组播发现风暴，SEDP 全互联                        | 静态发现 / Discovery Server / 按 partition 拆分   |
+| 同一台机器上互相干扰           | 多个 domain 或端口冲突                           | 规划 domain 编号，避免动态分配                    |
+| 只有大样本收不到               | 分片 / 传输缓冲区 / SHM 配置不当                 | 检查 max_message_size、SHM 段大小、MTU            |
+
+** 2.6 数据面：一条 DATA 与一次可靠重传
+
+RTPS 的数据子消息大体长这样：
+
+| 字段                | 含义                                                         |
+|---------------------+--------------------------------------------------------------|
+| writerId / readerId | 端点标识，readerId 可为 UNKNOWN 表示广播                      |
+| writerSN            | 样本序号，可靠性的基础                                        |
+| sourceTimestamp     | 源端时间戳，端到端时延统计的起点                              |
+| inline QoS          | 状态信息、instance handle 等                                  |
+| serializedPayload   | 4 字节封装头（表示 CDR 版本 / 字节序）+ 序列化后的样本        |
+
+一次"丢包 + 重传"的交互：
+
+#+begin_example
+  Writer                                          Reader
+    |  DATA(SN=1) --------------------------------->|  丢失
+    |  DATA(SN=2) --------------------------------->|  收到，缓存
+    |  HEARTBEAT(firstSN=1, lastSN=2) ------------->|
+    |<-------------------------- ACKNACK(请求 SN=1) |
+    |  DATA(SN=1) --------------------------------->|  按序交付 1,2
+    |  HEARTBEAT ---------------------------------->|
+    |<-------------------------- ACKNACK(无请求)    |
+#+end_example
+
+- ~HEARTBEAT~ 是 writer 主动告知"我有哪些序号"，周期可配。AD 场景常从默认的秒级调到 10~50 ms，否则一次丢包的恢复时间会直接吃掉时延预算。
+- ~ACKNACK~ 是 reader 的"缺包清单"（bitmap），不是逐包 ACK。
+- ~GAP~ 用于告知"这些序号不会再有数据"，常见于 HISTORY=KEEP_LAST 丢弃旧样本之后。
+- 大样本超过 MTU 会被拆成 ~DATA_FRAG~，reader 用 ~NACK_FRAG~ 请求缺失分片。分片会显著增加抖动，*大点云优先走共享内存而不是 UDP 分片*。
+- ~DESTINATION_ORDER=SOURCE_TIMESTAMP~ 时，reader 需要按时间戳重排；对实时控制链路，重排带来的额外缓存要计入时延。
+
+** 2.7 传输层与零拷贝
+
+| 传输             | 适用                         | 特点                                             |
+|------------------+------------------------------+--------------------------------------------------|
+| UDPv4 / UDPv6    | 跨机器、默认                 | 简单、可组播；受 MTU 与丢包影响                   |
+| Shared Memory    | 同机进程间                   | 免协议栈拷贝，延迟最低；Fast DDS / RTI 内置       |
+| iceoryx          | 同机、跨 DDS 实现            | 独立守护进程管理共享内存池，支持零拷贝 loan       |
+| TCP              | 跨网段、云边                  | 可靠但队头阻塞，实时性差，通常只用于非关键链路    |
+| TLS / DTLS       | 车云、对外接口               | 与 DDS-Security 配合或独立使用                    |
+
+零拷贝的正确用法（Fast DDS 风格）：
+
+#+begin_src cpp
+  // Writer side: borrow a preallocated buffer from the pool, fill, then publish.
+  void* sample = nullptr;
+  if (writer->loan_sample(sample) == ReturnCode_t::RETCODE_OK) {
+      auto* msg = static_cast<ad::msg::ObstacleArray*>(sample);
+      fill_obstacles(*msg);
+      writer->write(sample);   // ownership returns to the middleware after send
+  }
+#+end_src
+
+要点：
+
+- loan 出来的内存 *不要自己 delete*；写失败要 ~discard_loan~ 归还。
+- 零拷贝的前提是 *同主机 + 相同实现 + 类型支持 + QoS 允许*，跨机器会退化为序列化传输。
+- 共享内存段（~ /dev/shm ~）要预留足够大，并注意容器里的 ~/dev/shm~ 默认只有 64 MB。
+- 使用 iceoryx 时，RouDi 守护进程必须先启动；它挂掉后通信会退化或中断。
+
+** 2.8 安全：DDS-Security
+
+DDS-Security 通过插件实现四件事：
+
+1. *Authentication*：参与者之间做双向身份认证，通常基于 CA 签发的证书。
+2. *Access Control*：用 governance / permissions XML 描述"谁能发布 / 订阅哪些 topic、哪些 partition"。
+3. *Cryptographic*：对样本和子消息做加密与完整性保护（AES-GCM 等）。
+4. *Logging*：安全事件审计。
+
+工程上的现实取舍：
+
+- 握手有额外 RTT，节点多时启动会变慢；可用共享密钥 / 预共享证书简化。
+- 每包加密对大流量 topic 的 CPU 开销明显。常见做法是 *控制面加密、感知面靠分区与网络隔离*，或者只在跨信任域链路上启用。
+- 证书轮换、过期时间、产线注入、HSM 存储，这些"非协议"的事情往往比协议本身更花时间。
+- 与 ISO 21434 的 TARA 对齐：先做威胁分析，再决定哪些 topic 需要机密性、哪些只需要完整性。
+
+** 2.9 代码骨架：发布与订阅
+
+发布端（Fast DDS，节选）：
+
+#+begin_src cpp
+  #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
+  #include <fastdds/dds/publisher/DataWriter.hpp>
+  #include <fastdds/dds/publisher/Publisher.hpp>
+  #include <fastdds/dds/topic/Topic.hpp>
+
+  using namespace eprosima::fastdds::dds;
+
+  int main() {
+      DomainParticipant* participant =
+          DomainParticipantFactory::get_instance()->create_participant(0, PARTICIPANT_QOS_DEFAULT);
+      if (!participant) return 1;
+
+      TypeSupport type(new ad::msg::ObstacleArrayPubSubType());
+      type.register_type(participant);
+
+      Topic* topic = participant->create_topic(
+          "rt/perception/obstacles", type.get_type_name(), TOPIC_QOS_DEFAULT);
+      Publisher* publisher = participant->create_publisher(PUBLISHER_QOS_DEFAULT);
+
+      DataWriterQos wqos = DATAWRITER_QOS_DEFAULT;
+      wqos.reliability().kind = RELIABLE_RELIABILITY_QOS;
+      wqos.history().kind = KEEP_LAST_HISTORY_QOS;
+      wqos.history().depth = 10;
+      wqos.deadline().period = eprosima::fastdds::dds::Duration_t(0, 100 * 1000 * 1000); // 100 ms
+
+      DataWriter* writer = publisher->create_datawriter(topic, wqos);
+
+      ad::msg::ObstacleArray msg;
+      msg.stamp() = {10, 0};
+      for (int i = 0; i < 1; ++i) {
+          ad::msg::Obstacle ob;
+          ob.id(i).x(1.0f).y(0.5f).vx(8.0f).vy(0.0f).type(1).confidence(90);
+          msg.items().push_back(ob);
+          writer->write(&msg);
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+      return 0;
+  }
+#+end_src
+
+订阅端（关键在 listener 与 QoS 匹配）：
+
+#+begin_src cpp
+  class ObstacleListener : public DataReaderListener {
+  public:
+      void on_data_available(DataReader* reader) override {
+          ad::msg::ObstacleArray sample;
+          SampleInfo info;
+          while (reader->take_next_sample(&sample, &info) == ReturnCode_t::RETCODE_OK) {
+              if (!info.valid_data) continue;
+              // NOTE: source timestamp lives in info.source_timestamp
+              handle(sample, info.source_timestamp);
+          }
+      }
+      void on_requested_deadline_missed(DataReader*, const RequestedDeadlineMissedStatus&) override {
+          // Publisher violated the deadline; raise a fault, do not silently continue.
+      }
+  };
+
+  DataReaderQos rqos = DATAREADER_QOS_DEFAULT;
+  rqos.reliability().kind = RELIABLE_RELIABILITY_QOS;
+  rqos.history().kind = KEEP_LAST_HISTORY_QOS;
+  rqos.history().depth = 10;
+  rqos.deadline().period = eprosima::fastdds::dds::Duration_t(0, 100 * 1000 * 1000);
+  DataReader* reader = subscriber->create_datareader(topic, rqos, new ObstacleListener());
+#+end_src
+
+QoS 也可以用 XML profile 管起来，避免散落在代码里：
+
+#+begin_src xml
+  <profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+    <data_writer profile_name="sensor_best_effort">
+      <qos>
+        <reliability><kind>BEST_EFFORT</kind></reliability>
+        <history><kind>KEEP_LAST</kind><depth>1</depth></history>
+        <publishMode><kind>ASYNCHRONOUS</kind></publishMode>
+      </qos>
+    </data_writer>
+  </profiles>
+#+end_src
+
+** 2.10 优点与不足
+
+优点：
+
+- *标准化 + 互操作*：不同厂商实现可以互通，长期演进风险低。
+- *QoS 表达力强*：可靠性、deadline、liveliness、ownership 直接对应自动驾驶的工程需求。
+- *自动发现*：节点即插即用，拓扑变化无需中心服务。
+- *类型安全*：IDL + XTypes，跨语言、跨版本演进有规则可依。
+- *生态完整*：ROS 2、AUTOSAR AP、工具链、录包、可视化都成熟。
+- *安全内建*：认证 / 授权 / 加密有一等公民的标准。
+
+不足：
+
+- *概念多、学习曲线陡*：实体、QoS 组合、发现、分片，每一项都能单独踩坑。
+- *匹配失败是静默的*：没有中心注册表，排查依赖工具和抓包。
+- *组播依赖*：车载以太网、容器、云环境里组播经常不可用，需要单播或 Discovery Server 兜底。
+- *资源占用不低*：线程、内存池、发现流量；在 MCU 级平台上通常要用 DDS-XRCE 或 Micro 版本。
+- *不是硬实时*：DDS 只保证"尽力而为的软实时"，最终仍受 OS 调度、CPU 隔离、中断影响。
+- *实现间差异*：同一份 QoS 在不同实现上的默认值、扩展行为并不完全一致，跨实现集成要早做联调。
+- *安全开销*：加密与握手在大流量、多节点场景下需要专门调优。
+
+** 2.11 适用场景
+
+适合：
+
+- 车内主干数据总线：感知、融合、规划、控制之间的高频数据流。
+- 跨团队 / 跨供应商集成：需要契约（IDL + QoS）而不是口头约定。
+- 需要冗余与主备：OWNERSHIP + STRENGTH。
+- 需要后加入者拿历史状态：TRANSIENT_LOCAL（地图、配置、静态障碍物）。
+- ROS 2 / AUTOSAR AP 技术栈。
+- 需要长期维护、标准化演进的量产项目。
+
+不适合：
+
+- 单机脚本、一次性数据搬运（ZeroMQ 更轻）。
+- 需要"请求 - 响应 + 强事务"的业务接口（HTTP / gRPC 更合适）。
+- 极端资源受限、无 OS 的 MCU（用 DDS-XRCE / Micro 或 CAN）。
+- 只想快速验证一个算法，不想先搭发现和 QoS。
+
+* 3. ZeroMQ：给工程师的消息 socket 工具箱
+
+** 3.1 定位：它不是 DDS 的替代品
+
+ZeroMQ 的官方定位是"并发框架 / 消息库"，不是"中间件平台"。它提供的是：
+
+- 一套 *socket 抽象*（比 raw socket 好用，自带消息边界、重连、队列）；
+- 一套 *通信模式*（PUB/SUB、REQ/REP、PUSH/PULL……），模式决定语义；
+- 多传输（~inproc~ / ~ipc~ / ~tcp~ / ~pgm~）；
+- 多语言绑定。
+
+它 *不提供*：服务发现、类型系统、QoS、持久化、访问控制、中心化运维。
+"Zero" 指的是 zero broker、zero administration、zero cost（设计目标），不是"零配置就能量产"。
+
+一句话选型：*当你清楚拓扑和对端是谁，只要一根可靠/半可靠的消息管道时，用 ZeroMQ；当你要一套能自我描述、可治理的数据总线时，用 DDS。*
+
+** 3.2 模式与 socket 类型
+
+| 模式        | socket 组合              | 语义                                     | AD 中的例子                     |
+|-------------+--------------------------+------------------------------------------+---------------------------------|
+| 发布订阅    | PUB / SUB                | 一对多，无回执，慢加入者丢消息           | 实时可视化、状态广播            |
+| 请求应答    | REQ / REP                | 严格一问一答，状态机脆弱                 | 标定服务、参数查询              |
+| 请求应答    | DEALER / ROUTER          | 异步多对多，可自建超时与重试             | 任务分发、工具链 RPC            |
+| 流水线      | PUSH / PULL              | 负载均衡，单向                             | 离线数据预处理、录包分片        |
+| 独占对      | PAIR                     | 一对一，线程间通信                       | 进程内模块解耦                  |
+| 发布订阅扩展| XPUB / XSUB              | 可观测订阅关系，可做代理                 | 主题代理、录制网关              |
+
+#+begin_example
+  PUB ──┬──► SUB (perception viewer)
+        ├──► SUB (recorder)
+        └──► SUB (diagnostics)
+
+  PUSH ──► PULL worker 1
+       ├──► PULL worker 2
+       └──► PULL worker 3
+
+  DEALER ──► ROUTER (server) ──► DEALER worker
+#+end_example
+
+** 3.3 消息与序列化：协议内容由你定义
+
+ZeroMQ 只保证"消息帧"的投递，不管帧里是什么。它提供的能力是：
+
+- *消息边界*：一次 ~send~ 对应一次 ~recv~，不会出现 TCP 粘包。
+- *多帧消息*：~send~ 时带 ~ZMQ_SNDMORE~，多帧作为一个整体原子投递。
+- *无内置 schema*：你需要自己定 envelope、版本、字节序、校验。
+
+一个可用的 AD 消息封装：
+
+#+begin_example
+  frame 0: header (fixed 32 bytes)
+    magic       uint32  0x41444D53 ("ADMS")
+    version     uint16
+    msg_type    uint16
+    flags       uint32
+    seq         uint64
+    stamp_ns    uint64
+    payload_len uint32
+    header_crc  uint32
+  frame 1: payload (FlatBuffers / Protobuf / CDR)
+#+end_example
+
+序列化选择：
+
+| 方案         | 优点                                   | 缺点                              | 适用                     |
+|--------------+----------------------------------------+-----------------------------------+--------------------------|
+| Protobuf     | 生态好、跨语言、版本兼容               | 需要解析、非零拷贝                | 控制面、配置、工具链     |
+| FlatBuffers  | 免解析、可随机访问、适合大数组         | 生成代码多、可变性弱              | 点云、图像元数据、大消息 |
+| Cap'n Proto  | 零拷贝、支持流式                       | 生态相对小                        | 高性能管线               |
+| 自定义 POD   | 最快、最可控                           | 版本兼容要自己做                  | 内部固定格式、共享内存   |
+
+** 3.4 ZMTP：ZeroMQ 真正的线上协议
+
+ZeroMQ 不定义应用层语义，但它 *有* 标准化的线上协议 ZMTP 3.x，这正是不同语言绑定能够互通的原因。
+
+TCP 建连后先握手：
+
+#+begin_example
+  Greeting (64 B)           READY command               消息阶段
+  ┌──────────────────┐      ┌────────────────────┐      ┌──────────────────┐
+  │ 0xFF + padding   │ ───► │ Socket-Type        │ ───► │ flags|len|body   │
+  │ version 3.1      │      │ Identity (optional)│      │ flags|len|body   │
+  │ mechanism 20 B   │      │ Properties         │      │ ...              │
+  │ as-server, fill  │      └────────────────────┘      └──────────────────┘
+  └──────────────────┘
+#+end_example
+
+- *Greeting*：签名占位、版本、机制（NULL / PLAIN / CURVE）、是否作为服务器、填充，共 64 字节。
+- *READY*：交换 ~Socket-Type~ 与可选 ~Identity~。因此 *PUB 连 PUB、REQ 连 SUB 会在握手阶段失败*，表现为"连上了但没有数据"。
+- *CURVE*：在 READY 之前插入 HELLO → WELCOME → INITIATE 三步，完成 Curve25519 密钥交换与服务器公钥校验。
+- *消息帧*：flags + length + body；多帧消息靠 MORE 位串起来，作为一个整体投递。
+
+| 字段     | 长度     | 说明                                       |
+|----------+----------+--------------------------------------------|
+| ~flags~  | 1 B      | bit0=MORE，bit1=LONG，bit2=COMMAND         |
+| ~length~ | 1 或 8 B | 大端序；LONG 置位时使用 8 字节             |
+| ~body~   | length   | 命令或应用数据                             |
+
+工程含义：
+
+- 消息边界由协议保证，应用层不需要处理粘包；但 *单条消息的上限受内存与 HWM 约束*，超大点云仍应分块或改用共享内存。
+- 订阅过滤器通过订阅消息 / ~SUBSCRIBE~ 命令传递，过滤发生在 *发布端*：订阅关系不对时，消息根本不会出现在网卡上，抓包也看不到。排查时优先用 ~XPUB~ 观察订阅关系。
+- ~Identity~ 只影响 ROUTER 侧的寻址，不是认证凭据；不要用它做权限判断。
+
+** 3.5 连接生命周期与"可靠性语义"
+
+ZeroMQ 的 bind / connect 是对称的：任意一端 bind，另一端 connect；断线后自动重连。但它没有"会话"概念，可靠性要自己建。
+
+必须知道的几个行为：
+
+- *慢加入者（slow joiner）*：PUB 在 SUB 完成订阅之前发出的消息会直接丢弃。解决：发布端周期性发心跳 / 状态快照，或订阅端先订阅再通知发布端启动。
+- *HWM（高水位）*：每个 socket 的发送 / 接收队列上限，默认 1000。PUB 在队列满时 *丢弃*；PUSH 会阻塞；DEALER 会阻塞或丢弃（取决于选项）。
+- *LINGER*：默认 -1，~close~ 时会一直等待未发送消息，导致进程挂死。工具类进程建议显式设 0。
+- *IMMEDIATE*：connect 后如果对端还没建立连接，消息是否排队。设 1 可以避免"发给了还没连上的 peer"。
+- *CONFLATE*：SUB 只保留最新一条，天然适合"只要最新帧"的传感器数据。
+- *PUB/SUB 没有回执*，也不知道对端是否处理成功。要确认就自己加应用层 ACK。
+- *REQ/REP 是严格状态机*：一次 REQ 必须对应一次 REP，中途超时重发会让状态错乱（EFSM 问题）。生产代码优先用 DEALER/ROUTER + 请求 ID。
+
+一个应用层可靠请求的骨架：
+
+#+begin_example
+  client                                  server
+    |  [req_id=42][deadline=now+50ms]  ──►  |
+    |                                     处理
+    |  ◄── [req_id=42][status=OK][data]     |
+    |  （超时未回则重发，server 用 req_id 幂等去重）
+#+end_example
+
+** 3.6 传输与性能特征
+
+| 传输       | 范围           | 特点                                                     |
+|------------+----------------+----------------------------------------------------------|
+| ~inproc~   | 同进程线程间   | 无系统调用，延迟最低；必须先 bind 再 connect             |
+| ~ipc~      | 同机进程间     | Unix domain socket，比 TCP 少一层协议栈                  |
+| ~tcp~      | 跨机           | 通用、可跨网段；有 Nagle / 拥塞控制影响                  |
+| ~pgm/epgm~ | 跨机组播       | 需要 OpenPGM 与支持组播的网络；现已较少使用              |
+| ~udp~      | 特定场景       | 需自行处理丢包与重组                                     |
+
+量级参考（同机、空载、小消息）：~inproc~ 亚微秒到几微秒，~ipc~ 十几微秒，~tcp~ loopback 几十微秒。
+但 *ZeroMQ 的低延迟来自"不做事"*：不做发现、不做重传、不做类型检查。把这些补回来，延迟优势就会缩小。
+
+** 3.7 线程模型：一条铁律
+
+*socket 不是线程安全的*。规则：
+
+- 一个 socket 只在一个线程里创建、使用、关闭。
+- ~context~ 可以跨线程共享；~socket~ 不行。
+- 线程间通信用 ~inproc~ + PAIR / PUSH-PULL，不要共享 socket。
+- 不要在回调里做阻塞操作；用 ~zmq_poll~ / ~zmq_ppoll~ 驱动事件循环。
+- 进程退出时先关 socket 再销毁 context，注意 LINGER。
+
+** 3.8 安全
+
+ZeroMQ 自身没有认证与授权模型，只有传输层机制：
+
+- *NULL*：无安全，默认。
+- *PLAIN*：用户名 / 密码，明文（应只在受信网络使用）。
+- *CURVE*：基于 Curve25519 的加密与认证，需要 libsodium；可做服务器公钥固定（类似 pinning）。
+- *GSSAPI*：Kerberos，企业环境。
+
+现实做法：
+
+- 车内部署：网络分段 + VLAN + 只监听 ~ipc~ / 回环，减少暴露面。
+- 车云链路：CURVE 或直接套 TLS / mTLS / VPN。
+- 不要把 ZeroMQ 直接暴露在不可信网络；没有 topic 级 ACL，一个连接能订阅所有主题。
+
+** 3.9 代码骨架
+
+PUB / SUB（cppzmq + FlatBuffers 风格）：
+
+#+begin_src cpp
+  #include <zmq.hpp>
+
+  // Publisher: drop old frames instead of queueing them.
+  zmq::context_t ctx(1);
+  zmq::socket_t pub(ctx, zmq::socket_type::pub);
+  pub.set(zmq::sockopt::sndhwm, 4);
+  pub.set(zmq::sockopt::linger, 0);
+  pub.bind("ipc:///tmp/ad/perception.ipc");
+
+  while (running) {
+      auto frame = build_obstacle_frame(seq++);   // FlatBufferBuilder
+      zmq::message_t msg(frame.data(), frame.size());
+      pub.send(msg, zmq::send_flags::dontwait);   // never block the control loop
+  }
+
+  // Subscriber: keep only the latest sample.
+  zmq::socket_t sub(ctx, zmq::socket_type::sub);
+  sub.set(zmq::sockopt::rcvhwm, 4);
+  sub.set(zmq::sockopt::conflate, 1);
+  sub.set(zmq::sockopt::subscribe, "");
+  sub.connect("ipc:///tmp/ad/perception.ipc");
+
+  zmq::pollitem_t items[] = {{sub.handle(), 0, ZMQ_POLLIN, 0}};
+  while (running) {
+      zmq::poll(items, 1, std::chrono::milliseconds(100));
+      if (items[0].revents & ZMQ_POLLIN) {
+          zmq::message_t msg;
+          if (sub.recv(msg, zmq::recv_flags::dontwait)) {
+              handle_frame(msg.data(), msg.size());
+          }
+      }
+  }
+#+end_src
+
+DEALER / ROUTER 请求应答（带请求 ID）：
+
+#+begin_src cpp
+  // Client: send [request_id][payload], wait with timeout, retry idempotently.
+  zmq::socket_t dealer(ctx, zmq::socket_type::dealer);
+  dealer.set(zmq::sockopt::linger, 0);
+  dealer.connect("tcp://10.0.0.12:5555");
+
+  uint64_t req_id = next_request_id();
+  dealer.send(zmq::buffer(&req_id, sizeof(req_id)), zmq::send_flags::sndmore);
+  dealer.send(zmq::buffer(payload), zmq::send_flags::none);
+
+  // Server (ROUTER): [identity][request_id][payload]
+  zmq::socket_t router(ctx, zmq::socket_type::router);
+  router.set(zmq::sockopt::router_mandatory, 1);
+  router.bind("tcp://*:5555");
+  // Reply: [identity][request_id][status][data]
+#+end_src
+
+监控连接状态（很多人不知道的能力）：
+
+#+begin_src cpp
+  zmq_socket_monitor(sock.handle(), "inproc://monitor", ZMQ_EVENT_CONNECTED |
+                     ZMQ_EVENT_DISCONNECTED | ZMQ_EVENT_HANDSHAKE_FAILED);
+  // Consume events on a PAIR socket, then expose them as metrics.
+#+end_src
+
+** 3.10 优点与不足
+
+优点：
+
+- *极简*：一个库、几个 socket 类型，半天能跑通。
+- *轻量*：无 broker、无守护进程、无配置文件。
+- *拓扑灵活*：一对一、一对多、多对多、流水线都能拼。
+- *跨语言*：C/C++/Python/Rust/Java/Go 绑定齐全，工具链集成方便。
+- *同机性能好*：~inproc~ / ~ipc~ 路径短。
+- *易嵌入*：适合放进已有进程，不需要改造部署。
+
+不足：
+
+- *没有发现*：对端地址写死或依赖配置中心。
+- *没有类型与契约*：schema 靠约定，版本兼容靠自己。
+- *没有 QoS*：可靠性、deadline、优先级、持久化都要应用层实现。
+- *可靠性语义容易误用*：PUB 丢消息、REQ/REP 状态机、慢加入者，都是经典坑。
+- *可观测性弱*：没有内建拓扑视图，只能靠 monitor、抓包和日志。
+- *大规模治理困难*：节点多了以后，配置、监控、灰度、权限都要另建系统。
+- *安全能力有限*：CURVE 只解决链路加密与对端认证，没有 topic 级授权。
+
+** 3.11 适用场景
+
+适合：
+
+- 算法原型、SIL/HIL 台架、快速验证。
+- 录制 / 回放 / 离线数据管线：PUSH/PULL 做并行预处理。
+- 跨语言工具链：Python 分析脚本、可视化、标定工具。
+- 进程内 / 线程间解耦：~inproc~ 替代手写队列。
+- 点对点大块数据传输：清晰知道对端，且能接受自己管理可靠性。
+- 非关键路径：日志、诊断、UI、实验特性。
+
+不适合：
+
+- 量产车内主干总线（缺 QoS、发现、安全治理）。
+- 多供应商、长期演进、需要契约的项目。
+- 需要精确故障检测与主备切换的控制链路。
+
+* 4. 对比与选型
+
+** 4.1 能力矩阵
+
+| 维度             | DDS                                             | ZeroMQ                                      |
+|------------------+-------------------------------------------------+---------------------------------------------|
+| 定位             | 数据分发中间件（标准）                          | 消息 socket 库                              |
+| 发现             | 内建 SPDP/SEDP，可组播 / 单播 / Discovery Server | 无，需自行配置地址                          |
+| 类型系统         | IDL + XTypes，有演进规则                        | 无，自选序列化                              |
+| QoS              | 丰富（可靠性、deadline、liveliness、ownership…） | 无，模式 + socket 选项                      |
+| 可靠性           | 内建 RELIABLE + 重传 + 分片                     | 无（PUB/SUB 丢，REQ/REP 脆弱）               |
+| 背压             | RESOURCE_LIMITS + 流控                          | HWM（PUB 丢弃 / PUSH 阻塞）                 |
+| 传输             | UDP / SHM / TCP / TLS                           | inproc / ipc / tcp / pgm                    |
+| 零拷贝           | 支持（SHM、loan、iceoryx）                      | inproc 可传指针，跨进程不支持               |
+| 安全             | DDS-Security（认证 / 授权 / 加密 / 审计）       | CURVE / PLAIN / GSSAPI，无 topic 级 ACL     |
+| 可观测性         | 内建统计、发现信息、Wireshark 解析              | monitor 事件 + 抓包 + 自建指标              |
+| 大规模治理       | 强（domain / partition / QoS profile）          | 弱（需自建配置中心）                        |
+| 学习成本         | 高                                              | 低                                          |
+| 资源占用         | 中到高                                          | 低                                          |
+| 典型生态         | ROS 2、AUTOSAR AP、车载量产                     | 原型、工具、数据管线、跨语言                |
+
+** 4.2 性能量级参考
+
+以下数字仅用于建立直觉，真实值取决于 CPU、内核、消息大小、QoS 与实现版本：
+
+| 路径                              | 单向延迟量级 | 吞吐特征                     |
+|-----------------------------------+--------------+------------------------------|
+| DDS over UDP loopback（小消息）   | 50~200 µs    | 受协议栈与心跳影响           |
+| DDS over SHM（零拷贝）            | 5~30 µs      | 大样本优势明显               |
+| iceoryx 零拷贝                    | 1~10 µs      | 需要预分配内存池             |
+| ZeroMQ ~inproc~                   | 1~5 µs       | 同进程、无序列化             |
+| ZeroMQ ~ipc~                      | 10~50 µs     | 同机跨进程                   |
+| ZeroMQ ~tcp~ loopback             | 30~100 µs    | 受 TCP 与 Nagle 影响         |
+
+结论：*差距主要来自"做了多少事"，而不是"协议谁更快"*。DDS 的发现、QoS、可靠性都要花时间；ZeroMQ 把这些省掉，所以更快，但也更"裸"。
+
+** 4.3 选型决策树
+
+#+begin_example
+  需要自动发现 / 多供应商 / 长期演进？
+    ├── 是 ──► 需要 QoS、冗余、安全？
+    │            ├── 是 ──► DDS
+    │            └── 否 ──► DDS（仍是最省事的标准化选择）或 SOME/IP
+    └── 否 ──► 拓扑固定、点对点或简单广播？
+                 ├── 是 ──► 需要跨语言 / 快速落地？ ──► ZeroMQ
+                 └── 否 ──► 需要请求响应 + 强契约？ ──► gRPC / HTTP
+#+end_example
+
+** 4.4 混合架构：常见且务实
+
+量产项目里两者经常共存：
+
+#+begin_example
+  ┌──────────────────── 车端实时域（DDS） ────────────────────┐
+  │  sensor ──► perception ──► planning ──► control           │
+  │        QoS: BEST_EFFORT / RELIABLE / DEADLINE             │
+  └───────────────────────┬───────────────────────────────────┘
+                          │ DDS-ZMQ bridge（序列化转换 + QoS 降级）
+  ┌───────────────────────▼───────────────────────────────────┐
+  │  工具域 / 边缘域（ZeroMQ）                                │
+  │  recorder、visualizer、HIL、Python 分析、云端上传          │
+  └───────────────────────────────────────────────────────────┘
+#+end_example
+
+桥接设计要点：
+
+- *方向*：DDS → ZMQ 通常做"降采样 + 最新值"，ZMQ → DDS 要补 QoS 与时间戳。
+- *序列化*：两边统一用 IDL 生成代码，桥接层只做容器转换，避免手写字段映射。
+- *背压*：ZMQ 侧 HWM 满时丢消息，不能反压 DDS 的实时链路。
+- *故障隔离*：桥接进程崩溃不能影响车端主干，必要时用独立进程 + 看门狗。
+
+* 5. 面向自动驾驶的设计要点
+
+** 5.1 数据模型规范
+
+一份可执行的 IDL 检查清单：
+
+1. 高频 topic 用 ~@final~，字段定长，避免 ~string~ / 嵌套 ~sequence~。
+2. 显式写单位与坐标系：~x_m~、~v_mps~、~frame_id~。
+3. 时间戳统一用"源端采集时刻"，并单独提供"发布时刻"用于诊断。
+4. 大数组用固定长度（~float[16]~）或外部共享内存句柄，不用无界 ~sequence~。
+5. 枚举留 ~UNKNOWN = 0~，未知值不要当 0 处理。
+6. 版本演进只加字段、不改语义；删除字段用 ~reserved~。
+7. 每个消息带 ~schema_version~，录包回放时能识别。
+8. 避免 ~double~ 混用：嵌入式 GPU / DSP 上 ~float~ 更常见，跨端要统一。
+
+** 5.2 命名与分层
+
+推荐三级隔离：
+
+#+begin_example
+  domain_id     : 环境（0=整车, 1=台架, 2=回放, 3=开发）
+  partition     : 子系统（perception / planning / control / diagnostics）
+  topic name    : 数据（rt/perception/obstacles, rt/planning/trajectory）
+#+end_example
+
+命名约定：
+
+- ~rt/~ 前缀表示实时数据，~cfg/~ 表示配置，~diag/~ 表示诊断。
+- 名字里带坐标系与数据类型，例如 ~rt/perception/obstacles_ego_v2~。
+- 不要用 ~test1~、~tmp~ 这类名字进主干；回放环境用 partition 隔离。
+
+** 5.3 QoS 矩阵（示例）
+
+| Topic                     | Reliability | History        | Durability      | Deadline | Liveliness        |
+|---------------------------+-------------+----------------+-----------------+----------+-------------------|
+| ~rt/sensor/camera_*~      | BEST_EFFORT | KEEP_LAST(1)   | VOLATILE        | 100 ms   | AUTOMATIC 300 ms  |
+| ~rt/sensor/lidar~         | BEST_EFFORT | KEEP_LAST(1)   | VOLATILE        | 100 ms   | AUTOMATIC 300 ms  |
+| ~rt/perception/obstacles~ | RELIABLE    | KEEP_LAST(5)   | VOLATILE        | 100 ms   | MANUAL_BY_TOPIC 200 ms |
+| ~rt/planning/trajectory~  | RELIABLE    | KEEP_LAST(10)  | VOLATILE        | 50 ms    | MANUAL_BY_TOPIC 200 ms |
+| ~rt/control/command~      | RELIABLE    | KEEP_LAST(10)  | VOLATILE        | 20 ms    | MANUAL_BY_TOPIC 100 ms |
+| ~cfg/vehicle/params~      | RELIABLE    | KEEP_LAST(1)   | TRANSIENT_LOCAL | -        | AUTOMATIC 1 s     |
+| ~diag/health~             | BEST_EFFORT | KEEP_LAST(1)   | VOLATILE        | 1 s      | AUTOMATIC 1 s     |
+
+注意：DEADLINE 与 LIVELINESS 不是"设了就好"，它们会触发回调与额外流量；要在 HIL 上验证误报率。
+
+** 5.4 带宽与背压
+
+- 先做预算：单路带宽 × 路数 × 冗余系数（通常 1.3~1.5），不能超过链路能力的 70%。
+- 大流量 topic 用 SHM / 零拷贝，不要走 UDP 分片。
+- 订阅端处理不过来时，DDS 会按 HISTORY 丢旧样本（KEEP_LAST），这是正确行为；不要为了"不丢"改成 KEEP_ALL。
+- 控制链路要 *反压可见*：发布端要知道"对端是否还在"，用 LIVELINESS + 应用层心跳双重保障。
+- 录包 / 上传等旁路流量必须限速，否则会挤占实时链路。
+
+** 5.5 端到端时延分解
+
+#+begin_example
+  t0 传感器曝光
+  t1 驱动收到帧（DMA 完成）
+  t2 预处理完成，发布到中间件
+  t3 订阅端收到（含传输 / 排队）
+  t4 算法推理完成
+  t5 控制指令下发
+  t6 执行器响应
+#+end_example
+
+测量原则：
+
+- 用 PTP / gPTP 统一时钟，至少保证同一域内时钟偏差 < 1 ms。
+- 每条消息带 ~t0~ 与 ~t2~，订阅端记录 ~t3~，才能区分"算法慢"和"通信慢"。
+- 关注 *P99* 而不是平均值；通信抖动往往体现在长尾。
+- 在 HIL 上注入丢包、延迟、乱序，验证恢复时间是否满足预算。
+
+** 5.6 零拷贝与内存
+
+- 零拷贝不是默认开启就有收益：小消息（< 1 KB）走 SHM 反而可能更慢（同步与索引开销）。
+- 预分配内存池，避免运行时 ~malloc~；DDS 的 ~PREALLOCATED~ 策略、iceoryx 的内存池都属于这一类。
+- 注意 NUMA 与 CPU 亲和性：跨 NUMA 节点访问共享内存会显著增加延迟。
+- 容器里跑 DDS，记得挂载足够大的 ~/dev/shm~，否则大样本会失败并悄悄回退到 UDP。
+
+** 5.7 安全与功能安全的边界
+
+- DDS-Security 解决的是"通信安全"（机密性、完整性、身份），不解决"功能安全"。
+- 功能安全（ISO 26262）关注的是失效检测、降级、冗余；QoS 的 DEADLINE / LIVELINESS 可以作为失效检测的一环，但不能替代安全机制。
+- 关键控制链路要有独立的应用层心跳与看门狗，不能只依赖中间件的存活检测。
+- 安全启动、证书注入、密钥轮换属于产线与运维流程，提前设计。
+
+** 5.8 可观测性
+
+DDS：
+
+- 订阅内置 topic（~DCPSParticipant~ / ~DCPSPublication~ / ~DCPSSubscription~）做拓扑与 QoS 监控。
+- 使用实现的统计接口（发送 / 接收计数、丢包、匹配状态）。
+- Wireshark 的 RTPS dissector 能直接解析发现与数据子消息，是排查"为什么没匹配"的利器。
+- ~ros2 topic hz~ / ~ros2 topic bw~ / ~ros2 doctor~ 在 ROS 2 项目里是日常工具。
+
+ZeroMQ：
+
+- ~zmq_socket_monitor~ 采集连接 / 断开 / 握手失败事件。
+- 自建指标：发送计数、丢弃计数、队列深度、端到端延迟。
+- 没有拓扑视图，建议在 envelope 里带 ~source_id~，由收集端聚合成拓扑。
+
+** 5.9 测试策略
+
+| 测试             | 方法                                                     |
+|------------------+----------------------------------------------------------|
+| QoS 匹配         | 故意配置不兼容的 QoS，确认监控能报出来                   |
+| 丢包 / 重传      | ~tc netem loss~，观察恢复时间与 P99                      |
+| 延迟 / 抖动      | ~tc netem delay 20ms 5ms distribution normal~             |
+| 乱序             | ~tc netem reorder~，验证 DESTINATION_ORDER 行为           |
+| 分区 / 网络抖动  | ~iptables~ 丢组播，验证 initial peers 与单播回退          |
+| 进程重启         | kill 订阅端 / 发布端，验证重连与 liveliness 检测          |
+| 大样本           | 满负荷点云 + 多订阅者，验证 SHM 与内存池                  |
+| 长时间稳定性     | 8~24 小时跑环，观察内存、句柄、发现流量                   |
+
+* 6. 故障排查清单
+
+** 6.1 DDS 收不到数据
+
+1. *domain id 是否一致*？不同 domain 完全隔离。
+2. *topic 名字与类型名是否完全一致*？大小写、命名空间都算。
+3. *QoS 是否兼容*？RELIABLE 订阅端配 BEST_EFFORT 发布端是典型不匹配。
+4. *发现是否成功*？订阅内置 ~DCPSParticipant~，或用工具查看 participant 列表。
+5. *端口是否冲突*？同机多个 domain / 实现抢端口。
+6. *组播是否可达*？容器、防火墙、交换机 IGMP snooping 都可能阻断。
+7. *是否走了 SHM 但段不够大*？查看日志中的回退信息。
+8. *样本是否超过 ~max_message_size~ 或分片配置*？
+
+** 6.2 DDS 时延抖动大
+
+- 检查是否发生分片 / 重传（抓包看 ~HEARTBEAT~ / ~ACKNACK~ 频率）。
+- 检查发布端是否同步发布（~publishMode~），同步发布会在写线程里做序列化与发送。
+- 检查 HISTORY 深度：过大导致缓存与拷贝增加，过小导致丢帧。
+- 检查 CPU 隔离与中断亲和性；通信线程被业务线程抢占是常见原因。
+- 检查是否跨 NUMA / 跨 PCIe，共享内存不一定"免费"。
+
+** 6.3 发现慢、CPU 高
+
+- 节点数量 × 组播公告频率 = 发现流量；几十个节点时会明显。
+- 用 Discovery Server 或静态 peer 列表替代组播。
+- 按 partition 拆分，减少无关匹配。
+- 调整 initial announcements 与 announcement period，但不要牺牲故障恢复。
+
+** 6.4 ZeroMQ 常见坑
+
+| 现象                       | 原因                                             | 处理                                          |
+|----------------------------+--------------------------------------------------+-----------------------------------------------|
+| 刚启动时丢消息             | 慢加入者                                         | 先订阅后启动 / 周期发快照 / 应用层握手        |
+| 进程退出卡住               | LINGER 默认 -1                                    | 设 ~ZMQ_LINGER=0~                             |
+| 订阅端越来越慢、内存上涨   | HWM 过大 + 消费慢                                 | 调小 HWM，或用 CONFLATE 只保留最新            |
+| PUB 发出但没人收到         | 订阅过滤器为空 / 连接未建立                       | 检查 ~subscribe("")~ 与 monitor 事件          |
+| REQ/REP 超时后错乱         | EFSM                                             | 改用 DEALER/ROUTER + 请求 ID + 幂等           |
+| 跨机吞吐上不去             | TCP 窗口 / Nagle / 单线程                         | 多线程分片、调 ~TCP_NODELAY~、增大 HWM        |
+| 线程崩溃                   | 多线程共享 socket                                | 一线程一 socket                               |
+
+* 7. 术语表
+
+| 术语        | 含义                                                             |
+|-------------+------------------------------------------------------------------|
+| DCPS        | Data-Centric Publish-Subscribe，DDS 的编程模型                   |
+| RTPS        | Real-Time Publish-Subscribe，DDS 的线上协议                      |
+| SPDP        | Simple Participant Discovery Protocol，参与者发现                |
+| SEDP        | Simple Endpoint Discovery Protocol，端点发现                     |
+| GUID        | 全局唯一标识，participant 前缀 + entity id                       |
+| RxO         | Requested / Offered，QoS 匹配规则                                |
+| XTypes      | DDS 类型系统与演进规则                                           |
+| loan        | 从中间件内存池借出样本，避免拷贝                                 |
+| iceoryx     | 进程间零拷贝共享内存中间件                                       |
+| HWM         | High Water Mark，ZeroMQ 队列上限                                 |
+| ZMTP        | ZeroMQ Message Transport Protocol                                |
+| CURVE       | ZeroMQ 的 Curve25519 加密与认证机制                              |
+| EFSM        | REQ/REP 的严格状态机问题                                         |
+| SOME/IP     | AUTOSAR 的面向服务通信协议                                       |
+
+* 8. 参考资料
+
+- OMG DDS v1.4 Specification：https://www.omg.org/spec/DDS/1.4/
+- OMG DDSI-RTPS v2.5：https://www.omg.org/spec/DDSI-RTPS/2.5/
+- OMG DDS-XTypes v1.3：https://www.omg.org/spec/DDS-XTypes/1.3/
+- OMG DDS-Security v1.1：https://www.omg.org/spec/DDS-Security/1.1/
+- Fast DDS Documentation：https://fast-dds.docs.eprosima.com/
+- Cyclone DDS Documentation：https://cyclonedds.io/docs/
+- RTI Connext DDS Documentation：https://community.rti.com/static/documentation/connext-dds/current/doc/
+- iceoryx：https://iceoryx.io/
+- ZeroMQ Guide：https://zguide.zeromq.org/
+- libzmq API：https://libzmq.readthedocs.io/
+- ZMTP Specification：https://rfc.zeromq.org/spec/23/
+- ROS 2 QoS 文档：https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Quality-of-Service-Settings.html
